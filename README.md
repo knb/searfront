@@ -234,6 +234,8 @@ docker compose up --build browserless browser-search-worker
 
 `compose.yaml` は Browserless と Browser Search Worker のみを定義しています。Rails API、Redis、SearXNG は既存のローカル環境または運用構成に合わせて起動してください。初期状態では Browserless / Browser Search Worker のポートをホスト公開せず、Docker内部ネットワークで使います。
 
+Docker bridge network から `registry.npmjs.org` の名前解決が失敗する環境があるため、`compose.yaml` では Browser Search Worker の build network を `host` にしています。直接 `docker build` する場合も、同じ症状が出る環境では `docker build --network host ./browser-search-worker` を使ってください。
+
 Browser Search Workerを単体開発する場合:
 
 ```sh
