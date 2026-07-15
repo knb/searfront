@@ -10,8 +10,16 @@ export const searchResultSchema = z.object({
 export const searchResponseSchema = z.object({
   engine: z.literal("google-browser"),
   query: z.string(),
-  status: z.enum(["ok", "empty", "blocked"]),
+  status: z.enum(["ok", "empty", "blocked", "error"]),
   results: z.array(searchResultSchema),
+  error: z
+    .object({
+      code: z.string(),
+      message: z.string(),
+      retryable: z.boolean(),
+      suspend_seconds: z.number().int().positive().optional(),
+    })
+    .optional(),
   detected: z.object({
     captcha: z.boolean(),
     consent_page: z.boolean(),

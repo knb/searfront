@@ -63,6 +63,9 @@ Phase 5: 移行準備を実装済み。
 - Google検索結果 fixture parser。
 - CAPTCHA / 同意画面 / automated queries detector。
 - Google redirect URL正規化、内部URL除外、重複URL除外。
+- Browser Search Worker Phase 3 Google Search API。
+- Browserless接続、Google検索URL生成、画像ブロック、DOM待機、parser連携。
+- Worker APIの入力検証、Bearer認証、SearchError HTTP変換。
 
 ## Phase 進捗
 
@@ -75,6 +78,7 @@ Phase 5: 移行準備を実装済み。
 | Phase 5 | 既存 Rails / AI Agent の検索先を searfront へ移行 | 準備済み |
 | Browser Worker Phase 1 | Worker基盤、health、認証、Browserless接続確認、Docker | 実装済み |
 | Browser Worker Phase 2 | Google Parser、page detector、fixture test | 実装済み |
+| Browser Worker Phase 3 | Google Search API、Browserless実行、エラー応答 | 実装済み |
 
 ## Phase 1 実装メモ
 
@@ -142,7 +146,7 @@ bin/ci
 - bundler-audit: no vulnerabilities。
 - Brakeman: no warnings。
 - Rails test: 32 tests, 104 assertions, 0 failures, 0 errors。
-- Browser Search Worker: 13 tests, 0 failures。
+- Browser Search Worker: 19 tests, 0 failures。
 
 ## 次の作業
 

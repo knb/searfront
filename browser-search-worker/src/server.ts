@@ -3,10 +3,12 @@ import { checkBrowserless } from "./browser.js";
 import { loadConfig, type Config } from "./config.js";
 import { registerGoogleSearchRoute } from "./routes/google_search.js";
 import { registerHealthRoute } from "./routes/health.js";
+import type { GoogleSearchDependencies } from "./services/google_search.js";
 
 export type ServerOptions = {
   config?: Config;
   browserlessCheck?: (config: Config) => Promise<boolean>;
+  googleSearchDependencies?: GoogleSearchDependencies;
 };
 
 export function buildServer(options: ServerOptions = {}) {
@@ -15,7 +17,7 @@ export function buildServer(options: ServerOptions = {}) {
   const server = Fastify({ logger: true });
 
   registerHealthRoute(server, { config, browserlessCheck });
-  registerGoogleSearchRoute(server, config);
+  registerGoogleSearchRoute(server, config, options.googleSearchDependencies);
 
   return server;
 }

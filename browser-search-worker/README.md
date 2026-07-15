@@ -2,12 +2,16 @@
 
 Google検索の1ページ目をBrowserless Chromium経由で取得する内部向けworkerです。
 
-Phase 1では基盤のみを実装しています。
+Phase 3までで、内部APIからBrowserless経由のGoogle検索を実行する基盤を実装しています。
 
 - Fastify server
 - `GET /health`
 - Bearer token認証部品
 - Browserless接続確認
+- `POST /v1/search/google`
+- Google検索URL生成
+- CAPTCHA / 同意画面 / rate limit 検出
+- Google検索結果parser
 - Dockerfile
 - TypeScript / Vitest / ESLint設定
 
@@ -48,3 +52,14 @@ Browserlessへ接続できる場合:
 ```
 
 接続できない場合は `503` と `degraded` を返します。
+
+## Google Search
+
+```sh
+curl -X POST http://localhost:3000/v1/search/google \
+  -H "Authorization: Bearer $BROWSER_WORKER_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"llama.cpp Vulkan","language":"ja","country":"JP","limit":10}'
+```
+
+CAPTCHA、同意画面、rate limitを検出した場合は、CAPTCHA突破や自動同意を行わず、機械判定可能なエラーとして返します。
