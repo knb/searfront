@@ -17,12 +17,42 @@ module Searfront
       redis.close
     end
 
+    def all
+      engines = redis.scan_each(match: "#{prefix}*").each_with_object({}) do |key, result|
+        engine = key.delete_prefix(prefix)
+        result[engine] = JSON.parse(redis.get(key)).merge("engine" => engine)
+      end
+
+      { engines: engines.values.sort_by { |engine| engine.fetch("engine") } }
+    rescue Redis::BaseError, JSON::ParserError => error
+      raise CacheUnavailableError, error.message
+    ensure
+      redis.close
+    end
+
+    def resume(engine)
+      deleted = redis.del(key(engine)).positive?
+      {
+        status: "ok",
+        engine: engine,
+        resumed: deleted
+      }
+    rescue Redis::BaseError => error
+      raise CacheUnavailableError, error.message
+    ensure
+      redis.close
+    end
+
     private
 
     attr_reader :redis
 
+    def prefix
+      "searfront:state:v1:engine:"
+    end
+
     def key(engine)
-      "searfront:state:v1:engine:#{engine}"
+      "#{prefix}#{engine}"
     end
   end
 end

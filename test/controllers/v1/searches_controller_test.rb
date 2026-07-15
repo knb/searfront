@@ -121,6 +121,14 @@ module V1
       assert_response :unauthorized
     end
 
+    test "requires admin for refresh" do
+      with_search_env do
+        get "/v1/search", params: { q: "llama.cpp", refresh: true }, headers: auth_headers
+      end
+
+      assert_response :forbidden
+    end
+
     private
 
     def with_search_env

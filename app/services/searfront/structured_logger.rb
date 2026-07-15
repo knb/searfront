@@ -13,6 +13,8 @@ module Searfront
     end
 
     def log
+      Metrics.increment("searfront_requests_total", status: response.status, path: request.path)
+      Metrics.observe("searfront_request_duration_seconds", duration_ms / 1000.0, path: request.path)
       Rails.logger.info(payload.compact.to_json)
     end
 

@@ -7,7 +7,7 @@
 
 ## 現在の状態
 
-Phase 3: Sidekiq fallback と request polling を実装済み。
+Phase 4: 運用強化 API と rate limit を実装済み。
 
 実装済み:
 
@@ -42,6 +42,12 @@ Phase 3: Sidekiq fallback と request polling を実装済み。
 - browser fallback の最低実行間隔制御。
 - CAPTCHA / 429 診断時の engine suspension。
 - Phase 3 の controller / job test。
+- `/metrics` Prometheus text endpoint。
+- `GET /v1/engines` engine 状態一覧。
+- `POST /v1/engines/{name}/resume` engine 停止解除。
+- `DELETE /v1/cache` 条件付き cache 削除。
+- Rack::Attack による token / IP 単位の rate limit。
+- Phase 4 の controller / rate limit test。
 
 ## Phase 進捗
 
@@ -50,7 +56,7 @@ Phase 3: Sidekiq fallback と request polling を実装済み。
 | Phase 1 | Rails API 基盤、認証、healthz、Redis 接続、構造化ログ | 実装済み |
 | Phase 2 | SearXNG + cache、query 正規化、cache key、fresh/stale、single-flight、結果統合 | 実装済み |
 | Phase 3 | Sidekiq fallback、request status、BrowserSearchJob、Browser Worker API、interval / circuit breaker | 実装済み |
-| Phase 4 | metrics、engine 管理 API、Rack::Attack、alert、障害試験 | 未着手 |
+| Phase 4 | metrics、engine 管理 API、Rack::Attack、alert、障害試験 | 実装済み |
 | Phase 5 | 既存 Rails / AI Agent の検索先を searfront へ移行 | 未着手 |
 
 ## Phase 1 実装メモ
@@ -107,7 +113,7 @@ raw query text は記録しない。
 
 ## 検証
 
-Phase 3 実装後に次を実行し、成功を確認済み。
+Phase 4 実装後に次を実行し、成功を確認済み。
 
 ```sh
 bin/ci
@@ -118,15 +124,14 @@ bin/ci
 - RuboCop: no offenses。
 - bundler-audit: no vulnerabilities。
 - Brakeman: no warnings。
-- Rails test: 24 tests, 82 assertions, 0 failures, 0 errors。
+- Rails test: 32 tests, 104 assertions, 0 failures, 0 errors。
 
 ## 次の作業
 
-Phase 4 では次を実装する。
+Phase 5 では次を実施する。
 
-- metrics endpoint。
-- engine 管理 API。
-- Rack::Attack による client rate limit。
-- cache 管理 API。
-- alert 目安に沿った運用ログ / metrics。
-- Redis、SearXNG、Browser Worker、Sidekiq の障害シナリオ test。
+- 既存 Rails アプリやローカル AI Agent の検索先を searfront に変更する。
+- 直接 SearXNG 呼び出しを停止する。
+- cache hit 率、CAPTCHA / 429 回数、browser fallback 件数を計測する。
+- 実運用環境の Redis / SearXNG / Browser Worker / Browserless URL と token を設定する。
+- Kamal / Docker network 上で内部サービスを外部公開しない構成を確認する。
