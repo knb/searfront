@@ -54,6 +54,7 @@ Phase 5: 移行準備を実装済み。
 - 追跡可能な環境変数サンプル `config/searfront.env.example`。
 - クライアント移行手順 `docs/migration.md`。
 - searfront 実環境確認用 smoke script。
+- `bin/dev` で `.env.development` を読み込み、Web / worker / browser worker を同時起動。
 
 ## Phase 進捗
 

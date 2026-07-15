@@ -1,2 +1,63 @@
 #!/usr/bin/env ruby
-exec "./bin/rails", "server", *ARGV
+env_file = File.expand_path("../.env.development", __dir__)
+
+if File.exist?(env_file)
+  File.readlines(env_file, chomp: true).each do |line|
+    line = line.strip
+    next if line.empty? || line.start_with?("#")
+
+    key, value = line.split("=", 2)
+    next if key.nil? || value.nil? || key.empty?
+
+    value = value.strip
+    value = value[1...-1] if value.length >= 2 && %w[' "].include?(value[0]) && value[-1] == value[0]
+    ENV[key] = value
+  end
+end
+
+processes = {
+  "web" => [ "./bin/rails", "server", *ARGV ],
+  "worker" => [ "bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml" ],
+  "browser_worker" => [ "bundle", "exec", "sidekiq", "-C", "config/sidekiq_browser.yml" ]
+}
+
+pids = {}
+shutting_down = false
+
+shutdown = lambda do
+  next if shutting_down
+
+  shutting_down = true
+  pids.each_value do |pid|
+    Process.kill("TERM", pid)
+  rescue Errno::ESRCH
+    nil
+  end
+end
+
+trap("INT") { shutdown.call }
+trap("TERM") { shutdown.call }
+
+processes.each do |name, command|
+  pids[Process.spawn(*command)] = name
+end
+
+exit_status = 0
+
+begin
+  until pids.empty?
+    pid, status = Process.wait2
+    name = pids.delete(pid)
+    next unless name
+
+    next if shutting_down
+
+    warn "#{name} exited with status #{status.exitstatus || status.termsig}"
+    exit_status = status.exitstatus || 1
+    shutdown.call
+  end
+rescue Errno::ECHILD
+  nil
+end
+
+exit exit_status

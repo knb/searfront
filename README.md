@@ -170,11 +170,21 @@ Rails 生成時の health check route として `/up` も残しています。
 bundle install
 ```
 
-Rails server を起動します。
+開発環境では `.env.development` を用意すると、`bin/dev` が起動時に読み込みます。
+このファイルは `.gitignore` 対象です。設定値の雛形は
+[`config/searfront.env.example`](config/searfront.env.example) を参照してください。
+
+Web server と worker をまとめて起動します。
 
 ```sh
 bin/dev
 ```
+
+`bin/dev` は次の3プロセスを起動します。
+
+- `./bin/rails server`
+- `bundle exec sidekiq -C config/sidekiq.yml`
+- `bundle exec sidekiq -C config/sidekiq_browser.yml`
 
 テストを実行します。
 

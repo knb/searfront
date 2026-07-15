@@ -12,6 +12,15 @@ searfront へ切り替えるためのチェックリストです。
 
 ## 起動プロセス
 
+開発環境では `.env.development` を読み込んだ上で、次をまとめて起動できる。
+
+```sh
+bin/dev
+```
+
+`bin/dev` は Web、通常 worker、Browser fallback 専用 worker を同時に起動する。
+本番や process manager 配下では、次のようにプロセスを分けて起動する。
+
 Web:
 
 ```sh
