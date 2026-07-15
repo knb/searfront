@@ -1,0 +1,18 @@
+[Unit]
+Description=Searfront browser fallback Sidekiq worker
+After=network-online.target
+Wants=network-online.target
+PartOf=searfront.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/kensei/sites/searfront
+ExecStart=/home/kensei/sites/searfront/script/production-run browser-worker
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=45
+KillSignal=SIGTERM
+SyslogIdentifier=searfront-browser-worker
+
+[Install]
+WantedBy=searfront.target

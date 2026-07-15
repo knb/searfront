@@ -1,0 +1,18 @@
+[Unit]
+Description=Searfront Sidekiq worker
+After=network-online.target
+Wants=network-online.target
+PartOf=searfront.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/kensei/sites/searfront
+ExecStart=/home/kensei/sites/searfront/script/production-run worker
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGTERM
+SyslogIdentifier=searfront-worker
+
+[Install]
+WantedBy=searfront.target

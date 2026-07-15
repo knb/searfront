@@ -1,0 +1,18 @@
+[Unit]
+Description=Searfront Rails API
+After=network-online.target
+Wants=network-online.target
+PartOf=searfront.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/kensei/sites/searfront
+ExecStart=/home/kensei/sites/searfront/script/production-run web
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGTERM
+SyslogIdentifier=searfront-web
+
+[Install]
+WantedBy=searfront.target

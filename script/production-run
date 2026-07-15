@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_DIR="${SEARFRONT_APP_DIR:-/home/kensei/sites/searfront}"
+ENV_FILE="${SEARFRONT_ENV_FILE:-$APP_DIR/.env.production}"
+
+cd "$APP_DIR"
+
+if [[ ! -f "$ENV_FILE" ]]; then
+  echo "Missing environment file: $ENV_FILE" >&2
+  exit 1
+fi
+
+set -a
+# shellcheck disable=SC1090
+source "$ENV_FILE"
+set +a
+
+export RAILS_ENV="${RAILS_ENV:-production}"
+export RACK_ENV="${RACK_ENV:-$RAILS_ENV}"
+
+export RBENV_ROOT="${RBENV_ROOT:-$HOME/.rbenv}"
+if [[ -x "$RBENV_ROOT/bin/rbenv" ]]; then
+  export PATH="$RBENV_ROOT/bin:$RBENV_ROOT/shims:$PATH"
+  BUNDLE_COMMAND=(rbenv exec bundle)
+else
+  BUNDLE_COMMAND=(bundle)
+fi
+
+case "${1:-}" in
+  web)
+    exec "${BUNDLE_COMMAND[@]}" exec puma -C config/puma.rb
+    ;;
+  worker)
+    exec "${BUNDLE_COMMAND[@]}" exec sidekiq -C config/sidekiq.yml
+    ;;
+  browser-worker)
+    exec "${BUNDLE_COMMAND[@]}" exec sidekiq -C config/sidekiq_browser.yml
+    ;;
+  *)
+    echo "Usage: $0 {web|worker|browser-worker}" >&2
+    exit 64
+    ;;
+esac
