@@ -1,5 +1,7 @@
 # searfront 進捗
 
+[English](progress.en.md)
+
 最終更新: 2026-07-15
 
 このドキュメントは `docs/searfront_design_v0.1.md` の実装進捗を記録する。

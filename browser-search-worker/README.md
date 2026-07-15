@@ -1,5 +1,7 @@
 # searfront Browser Search Worker
 
+[English](README.en.md)
+
 Google検索の1ページ目をBrowserless Chromium経由で取得する内部向けworkerです。
 
 Phase 3までで、内部APIからBrowserless経由のGoogle検索を実行する基盤を実装しています。

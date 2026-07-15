@@ -1,5 +1,7 @@
 # searfront 移行手順
 
+[English](migration.en.md)
+
 この手順は、既存 Rails アプリやローカル AI Agent の検索先を SearXNG 直呼びから
 searfront へ切り替えるためのチェックリストです。
 

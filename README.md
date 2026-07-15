@@ -1,5 +1,9 @@
 # searfront
 
+[English](README.en.md)
+
+このリポジトリは ChatGPT + Codex を使って作成しています。
+
 searfront は SearXNG の前段に配置する独立型の検索ゲートウェイです。
 検索要求を正規化し、Redis キャッシュで同一検索を再利用し、同時 miss を
 single-flight で集約します。通常経路は SearXNG とし、結果不足・429・
