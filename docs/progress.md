@@ -7,7 +7,7 @@
 
 ## 現在の状態
 
-Phase 2: SearXNG + cache の同期検索経路を実装済み。
+Phase 3: Sidekiq fallback と request polling を実装済み。
 
 実装済み:
 
@@ -34,6 +34,14 @@ Phase 2: SearXNG + cache の同期検索経路を実装済み。
 - URL canonicalization。
 - deterministic な result merge。
 - Phase 2 の controller / service test。
+- `GET /v1/search_requests/{request_id}` polling endpoint。
+- request status Redis payload。
+- `BrowserSearchJob`。
+- Browser Worker client。
+- 結果不足 + stale なしの `202 Accepted` response。
+- browser fallback の最低実行間隔制御。
+- CAPTCHA / 429 診断時の engine suspension。
+- Phase 3 の controller / job test。
 
 ## Phase 進捗
 
@@ -41,7 +49,7 @@ Phase 2: SearXNG + cache の同期検索経路を実装済み。
 | --- | --- | --- |
 | Phase 1 | Rails API 基盤、認証、healthz、Redis 接続、構造化ログ | 実装済み |
 | Phase 2 | SearXNG + cache、query 正規化、cache key、fresh/stale、single-flight、結果統合 | 実装済み |
-| Phase 3 | Sidekiq fallback、request status、BrowserSearchJob、Browser Worker API、interval / circuit breaker | 未着手 |
+| Phase 3 | Sidekiq fallback、request status、BrowserSearchJob、Browser Worker API、interval / circuit breaker | 実装済み |
 | Phase 4 | metrics、engine 管理 API、Rack::Attack、alert、障害試験 | 未着手 |
 | Phase 5 | 既存 Rails / AI Agent の検索先を searfront へ移行 | 未着手 |
 
@@ -99,7 +107,7 @@ raw query text は記録しない。
 
 ## 検証
 
-Phase 2 実装後に次を実行し、成功を確認済み。
+Phase 3 実装後に次を実行し、成功を確認済み。
 
 ```sh
 bin/ci
@@ -110,17 +118,15 @@ bin/ci
 - RuboCop: no offenses。
 - bundler-audit: no vulnerabilities。
 - Brakeman: no warnings。
-- Rails test: 18 tests, 57 assertions, 0 failures, 0 errors。
+- Rails test: 24 tests, 82 assertions, 0 failures, 0 errors。
 
 ## 次の作業
 
-Phase 3 では次を実装する。
+Phase 4 では次を実装する。
 
-- `GET /v1/search_requests/{request_id}`。
-- request status Redis payload。
-- `BrowserSearchJob`。
-- Browser Worker client。
-- 結果不足 + stale なしの `202 Accepted` response。
-- browser fallback の interval / concurrency 制御。
-- CAPTCHA / 429 検出と engine suspension。
-- browser fallback と polling の integration test。
+- metrics endpoint。
+- engine 管理 API。
+- Rack::Attack による client rate limit。
+- cache 管理 API。
+- alert 目安に沿った運用ログ / metrics。
+- Redis、SearXNG、Browser Worker、Sidekiq の障害シナリオ test。

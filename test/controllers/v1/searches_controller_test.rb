@@ -90,6 +90,22 @@ module V1
       end
     end
 
+    test "queues browser fallback when no stale result is available" do
+      with_search_env do
+        stub_searxng(results: [ searxng_result(1) ])
+
+        assert_enqueued_with(job: BrowserSearchJob, queue: "browser_search") do
+          get "/v1/search", params: { q: "needs browser fallback" }, headers: auth_headers
+        end
+
+        assert_response :accepted
+        body = response.parsed_body
+        assert_equal "pending", body["status"]
+        assert_includes body["warnings"], "browser_fallback_queued"
+        assert_includes body["warnings"], "searxng_result_insufficient"
+      end
+    end
+
     test "rejects invalid request" do
       with_search_env do
         get "/v1/search", params: { q: "" }, headers: auth_headers

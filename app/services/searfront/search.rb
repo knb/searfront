@@ -12,6 +12,7 @@ module Searfront
       @cache = ResultCache.new
       @cache_key = CacheKey.for(request)
       @digest = CacheKey.digest_for(request)
+      @request_status = RequestStatus.new
     end
 
     def call
@@ -25,15 +26,16 @@ module Searfront
         return completed(refreshed, cache_status(refreshed)) if cache_usable?(refreshed)
         return stale_response(refreshed, "single_flight_in_progress") unless lock_owner
 
-        fetch_and_cache || stale_response(refreshed || cached, "searxng_result_insufficient")
+        fetch_and_cache || fallback_response(refreshed || cached, "searxng_result_insufficient")
       end
     ensure
       cache.close
+      request_status.close
     end
 
     private
 
-    attr_reader :request, :request_id, :cache, :cache_key, :digest
+    attr_reader :request, :request_id, :cache, :cache_key, :digest, :request_status
 
     def fetch_and_cache
       results = Clients::SearxngClient.new.search(request)
@@ -81,6 +83,12 @@ module Searfront
       result
     end
 
+    def fallback_response(payload, warning)
+      return stale_response(payload, warning) if payload
+
+      enqueue_browser_search(warning)
+    end
+
     def cached_only_response(payload)
       return stale_response(payload, "cache_mode_stale") if payload
 
@@ -103,6 +111,26 @@ module Searfront
         "warnings" => [],
         "timing_ms" => {}
       }
+    end
+
+    def enqueue_browser_search(warning)
+      request_status.pending(request_id, cache_key)
+      BrowserSearchJob.perform_later(request_id, request.to_h, cache_key)
+
+      SearchResult.new(
+        http_status: :accepted,
+        response: {
+          request_id: request_id,
+          status: "pending",
+          poll_after_seconds: 3,
+          expires_at: request_expires_at.iso8601,
+          warnings: [ "browser_fallback_queued", warning ]
+        }
+      )
+    end
+
+    def request_expires_at
+      Time.current.utc + ENV.fetch("REQUEST_STATUS_TTL_SECONDS", 600).to_i
     end
 
     def minimum_results

@@ -4,6 +4,7 @@ Rails.application.routes.draw do
 
   namespace :v1 do
     get "search" => "searches#show"
+    get "search_requests/:id" => "search_requests#show"
   end
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
