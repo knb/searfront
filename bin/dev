@@ -28,7 +28,7 @@ shutdown = lambda do
   next if shutting_down
 
   shutting_down = true
-  pids.each_value do |pid|
+  pids.each_key do |pid|
     Process.kill("TERM", pid)
   rescue Errno::ESRCH
     nil
