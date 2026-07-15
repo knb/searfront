@@ -129,14 +129,36 @@ module V1
       assert_response :forbidden
     end
 
+    test "requires admin for browser mode" do
+      with_search_env do
+        get "/v1/search", params: { q: "llama.cpp", mode: "browser" }, headers: auth_headers
+      end
+
+      assert_response :forbidden
+    end
+
+    test "queues browser search directly in browser mode" do
+      with_search_env(api_tokens: "admin:admin-secret:admin") do
+        assert_enqueued_with(job: BrowserSearchJob, queue: "browser_search") do
+          get "/v1/search", params: { q: "browser only", mode: "browser" }, headers: admin_headers
+        end
+
+        assert_response :accepted
+        body = response.parsed_body
+        assert_equal "pending", body["status"]
+        assert_includes body["warnings"], "browser_mode_requested"
+        assert_not_requested :get, "http://searxng:8080/"
+      end
+    end
+
     private
 
-    def with_search_env
+    def with_search_env(api_tokens: "test:test-secret:user")
       store = {}
       redis = FakeRedis.new(store)
 
       with_env(
-        "SEARFRONT_API_TOKENS" => "test:test-secret:user",
+        "SEARFRONT_API_TOKENS" => api_tokens,
         "CACHE_REDIS_URL" => "redis://cache.example:6379/0",
         "STATE_REDIS_URL" => "redis://state.example:6379/0",
         "SIDEKIQ_REDIS_URL" => "redis://sidekiq.example:6379/0",
@@ -159,6 +181,10 @@ module V1
 
     def auth_headers
       { "Authorization" => "Bearer test-secret" }
+    end
+
+    def admin_headers
+      { "Authorization" => "Bearer admin-secret" }
     end
 
     def stub_searxng(results: 3.times.map { |index| searxng_result(index + 1) })

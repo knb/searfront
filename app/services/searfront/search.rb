@@ -20,6 +20,7 @@ module Searfront
       return completed(cached, cache_status(cached)) if cache_usable?(cached)
 
       return cached_only_response(cached) if request.mode == "cache"
+      return enqueue_browser_search("browser_mode_requested") if request.mode == "browser"
 
       SingleFlight.new(digest).synchronize do |lock_owner|
         refreshed = cache.read(cache_key)

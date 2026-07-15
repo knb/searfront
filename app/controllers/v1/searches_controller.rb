@@ -1,7 +1,7 @@
 module V1
   class SearchesController < ApplicationController
     def show
-      require_admin! if ActiveModel::Type::Boolean.new.cast(params[:refresh])
+      require_admin! if ActiveModel::Type::Boolean.new.cast(params[:refresh]) || params[:mode] == "browser"
       return if performed?
 
       result = Searfront::Search.call(params: search_params, request_id: request.request_id)

@@ -40,13 +40,13 @@ module Searfront
       diagnostics = worker_response.fetch("diagnostics", {})
       if diagnostics["captcha"] || diagnostics["access_denied"]
         EngineState.new.suspend(engine, reason: "captcha", duration: captcha_suspend_seconds)
-        raise UpstreamError, "Browser Worker detected CAPTCHA or access denied"
+        raise UpstreamError, worker_error_message(worker_response, "Browser Worker detected CAPTCHA or access denied")
       end
 
       return unless diagnostics["rate_limited"]
 
       EngineState.new.suspend(engine, reason: "rate_limited", duration: rate_limit_suspend_seconds)
-      raise UpstreamError, "Browser Worker detected rate limit"
+      raise UpstreamError, worker_error_message(worker_response, "Browser Worker detected rate limit")
     end
 
     def fresh?(payload)
@@ -79,6 +79,10 @@ module Searfront
 
     def rate_limit_suspend_seconds
       ENV.fetch("RATE_LIMIT_SUSPEND_SECONDS", 7_200).to_i
+    end
+
+    def worker_error_message(worker_response, fallback)
+      worker_response.dig("error", "message").presence || fallback
     end
   end
 end

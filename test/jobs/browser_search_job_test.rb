@@ -68,8 +68,8 @@ class BrowserSearchJobTest < ActiveJob::TestCase
     with_env(
       "CACHE_REDIS_URL" => "redis://cache.example:6379/0",
       "STATE_REDIS_URL" => "redis://state.example:6379/0",
-      "BROWSER_WORKER_BASE_URL" => "http://browser-worker:3000/",
-      "BROWSER_WORKER_TOKEN" => "worker-token",
+      "BROWSER_SEARCH_WORKER_URL" => "http://browser-search-worker:3000/",
+      "BROWSER_SEARCH_WORKER_TOKEN" => "worker-token",
       "BROWSER_MIN_INTERVAL_SECONDS" => "0",
       "BROWSER_JITTER_SECONDS" => "0"
     ) do
@@ -86,7 +86,7 @@ class BrowserSearchJobTest < ActiveJob::TestCase
   end
 
   def stub_browser_worker(diagnostics: {})
-    stub_request(:post, "http://browser-worker:3000/v1/search")
+    stub_request(:post, "http://browser-search-worker:3000/v1/search/google")
       .with(headers: { "Authorization" => "Bearer worker-token" })
       .to_return(
         status: 200,
@@ -94,13 +94,18 @@ class BrowserSearchJobTest < ActiveJob::TestCase
         body: JSON.generate(
           {
             status: "ok",
-            engine: "google",
-            diagnostics: { captcha: false, rate_limited: false }.merge(diagnostics),
+            engine: "google-browser",
+            detected: {
+              captcha: diagnostics[:captcha] == true,
+              consent_page: diagnostics[:consent_page] == true,
+              rate_limited: diagnostics[:rate_limited] == true
+            },
             results: [
               {
+                position: 1,
                 title: "browser result",
                 url: "https://example.org/browser?utm_source=x#top",
-                snippet: "browser snippet"
+                content: "browser snippet"
               }
             ]
           }

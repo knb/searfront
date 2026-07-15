@@ -2,7 +2,7 @@ module Searfront
   class SearchParams
     LANGUAGES = %w[ja-JP en-US].freeze
     TIME_RANGES = %w[day week month year].freeze
-    MODES = %w[auto cache searxng].freeze
+    MODES = %w[auto cache searxng browser].freeze
     DEFAULT_LANGUAGE = "ja-JP"
     DEFAULT_LIMIT = 10
     DEFAULT_CATEGORY = "general"
