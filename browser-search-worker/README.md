@@ -36,6 +36,8 @@ npm run lint
 
 `.env.example` を参照してください。本番では `BROWSER_WORKER_TOKEN` を必須にします。
 
+Browserless v2では `BROWSERLESS_WS_ENDPOINT=ws://browserless:3000/chromium` を使います。tokenは `BROWSERLESS_TOKEN` からquery parameterとして付与します。
+
 `DEBUG_ARTIFACTS_ENABLED=true` の場合のみ、CAPTCHA、同意画面、rate limit、0件、DOM解析失敗、想定外例外で `DEBUG_ARTIFACTS_DIR` に `metadata.json`、`page.html`、`screenshot.png` を保存します。`metadata.json` には検索語本文を保存せず、SHA-256 digestのみを記録します。
 
 ## Health

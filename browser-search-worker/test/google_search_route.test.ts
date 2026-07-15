@@ -6,7 +6,7 @@ import { googleRateLimitedError } from "../src/errors/search_error.js";
 const config = loadConfig({
   NODE_ENV: "test",
   BROWSER_WORKER_TOKEN: "secret",
-  BROWSERLESS_WS_ENDPOINT: "ws://browserless:3000",
+  BROWSERLESS_WS_ENDPOINT: "ws://browserless:3000/chromium",
   GOOGLE_MIN_INTERVAL_MS: "0",
   GOOGLE_INTERVAL_JITTER_MS: "0",
 });

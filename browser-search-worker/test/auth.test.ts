@@ -9,7 +9,7 @@ describe("Bearer authentication", () => {
     const config = loadConfig({
       NODE_ENV: "test",
       BROWSER_WORKER_TOKEN: "secret",
-      BROWSERLESS_WS_ENDPOINT: "ws://browserless:3000",
+      BROWSERLESS_WS_ENDPOINT: "ws://browserless:3000/chromium",
     });
     server.get("/protected", { preHandler: authenticateRequest(config) }, async () => ({ status: "ok" }));
 
@@ -27,7 +27,7 @@ describe("Bearer authentication", () => {
     const config = loadConfig({
       NODE_ENV: "test",
       BROWSER_WORKER_TOKEN: "secret",
-      BROWSERLESS_WS_ENDPOINT: "ws://browserless:3000",
+      BROWSERLESS_WS_ENDPOINT: "ws://browserless:3000/chromium",
     });
     server.get("/protected", { preHandler: authenticateRequest(config) }, async () => ({ status: "ok" }));
 
@@ -45,7 +45,7 @@ describe("Bearer authentication", () => {
     expect(() =>
       loadConfig({
         NODE_ENV: "production",
-        BROWSERLESS_WS_ENDPOINT: "ws://browserless:3000",
+        BROWSERLESS_WS_ENDPOINT: "ws://browserless:3000/chromium",
       }),
     ).toThrow("BROWSER_WORKER_TOKEN is required in production");
   });

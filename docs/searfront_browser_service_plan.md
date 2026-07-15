@@ -382,14 +382,14 @@ Authorization: Bearer <token>
 環境変数:
 
 ```text
-BROWSERLESS_WS_ENDPOINT=ws://browserless:3000
+BROWSERLESS_WS_ENDPOINT=ws://browserless:3000/chromium
 BROWSERLESS_TOKEN=<browserless-token>
 ```
 
 接続URL例:
 
 ```text
-ws://browserless:3000?token=<browserless-token>
+ws://browserless:3000/chromium?token=<browserless-token>
 ```
 
 Browser Search Workerは、リクエストごとにChromiumプロセスを起動しない。
@@ -772,7 +772,7 @@ services:
       NODE_ENV: production
       PORT: "3000"
       BROWSER_WORKER_TOKEN: ${BROWSER_WORKER_TOKEN}
-      BROWSERLESS_WS_ENDPOINT: ws://browserless:3000
+      BROWSERLESS_WS_ENDPOINT: ws://browserless:3000/chromium
       BROWSERLESS_TOKEN: ${BROWSERLESS_TOKEN}
       GOOGLE_MIN_INTERVAL_MS: "15000"
       GOOGLE_INTERVAL_JITTER_MS: "5000"

@@ -4,7 +4,7 @@ const configSchema = z.object({
   nodeEnv: z.string().default("development"),
   port: z.coerce.number().int().positive().default(3000),
   browserWorkerToken: z.string().optional(),
-  browserlessWsEndpoint: z.string().url().default("ws://browserless:3000"),
+  browserlessWsEndpoint: z.string().url().default("ws://browserless:3000/chromium"),
   browserlessToken: z.string().optional(),
   browserlessConnectTimeoutMs: z.coerce.number().int().positive().default(10_000),
   googleMinIntervalMs: z.coerce.number().int().nonnegative().default(15_000),

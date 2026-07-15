@@ -183,7 +183,7 @@ Browser Search Worker 側の主要な環境変数:
 | 変数 | 必須 | 初期値 | 説明 |
 | --- | --- | --- | --- |
 | `BROWSER_WORKER_TOKEN` | Production | | Worker API の Bearer token。 |
-| `BROWSERLESS_WS_ENDPOINT` | Yes | `ws://browserless:3000` | Browserless WebSocket endpoint。 |
+| `BROWSERLESS_WS_ENDPOINT` | Yes | `ws://browserless:3000/chromium` | Browserless WebSocket endpoint。 |
 | `BROWSERLESS_TOKEN` | No | | Browserless token。 |
 | `GOOGLE_MIN_INTERVAL_MS` | No | `15000` | Worker内のGoogle検索最低間隔。 |
 | `GOOGLE_INTERVAL_JITTER_MS` | No | `5000` | Worker内の追加jitter。 |

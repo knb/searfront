@@ -10,7 +10,7 @@ const fixturesDir = join(import.meta.dirname, "fixtures");
 
 const config = loadConfig({
   NODE_ENV: "test",
-  BROWSERLESS_WS_ENDPOINT: "ws://browserless:3000",
+  BROWSERLESS_WS_ENDPOINT: "ws://browserless:3000/chromium",
   GOOGLE_MIN_INTERVAL_MS: "0",
   GOOGLE_INTERVAL_JITTER_MS: "0",
 });
@@ -65,7 +65,7 @@ describe("searchGoogle", () => {
     const browser = fakeBrowser(readFixture("google_captcha.html"), "https://www.google.com/sorry/index");
     const debugConfig = loadConfig({
       NODE_ENV: "test",
-      BROWSERLESS_WS_ENDPOINT: "ws://browserless:3000",
+      BROWSERLESS_WS_ENDPOINT: "ws://browserless:3000/chromium",
       GOOGLE_MIN_INTERVAL_MS: "0",
       GOOGLE_INTERVAL_JITTER_MS: "0",
       DEBUG_ARTIFACTS_ENABLED: "true",

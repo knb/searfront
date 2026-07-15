@@ -5,7 +5,7 @@ import { loadConfig } from "../src/config.js";
 const config = loadConfig({
   NODE_ENV: "test",
   PORT: "3000",
-  BROWSERLESS_WS_ENDPOINT: "ws://browserless:3000",
+  BROWSERLESS_WS_ENDPOINT: "ws://browserless:3000/chromium",
 });
 
 describe("GET /health", () => {
