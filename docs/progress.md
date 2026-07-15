@@ -59,6 +59,10 @@ Phase 5: 移行準備を実装済み。
 - `browser-search-worker` の Fastify / TypeScript / Vitest / ESLint 設定。
 - Browser Search Worker `/health` endpoint と Bearer token 認証部品。
 - Browserless 接続確認と Docker / Compose 設定。
+- Browser Search Worker Phase 2 Google Parser。
+- Google検索結果 fixture parser。
+- CAPTCHA / 同意画面 / automated queries detector。
+- Google redirect URL正規化、内部URL除外、重複URL除外。
 
 ## Phase 進捗
 
@@ -70,6 +74,7 @@ Phase 5: 移行準備を実装済み。
 | Phase 4 | metrics、engine 管理 API、Rack::Attack、alert、障害試験 | 実装済み |
 | Phase 5 | 既存 Rails / AI Agent の検索先を searfront へ移行 | 準備済み |
 | Browser Worker Phase 1 | Worker基盤、health、認証、Browserless接続確認、Docker | 実装済み |
+| Browser Worker Phase 2 | Google Parser、page detector、fixture test | 実装済み |
 
 ## Phase 1 実装メモ
 
@@ -137,7 +142,7 @@ bin/ci
 - bundler-audit: no vulnerabilities。
 - Brakeman: no warnings。
 - Rails test: 32 tests, 104 assertions, 0 failures, 0 errors。
-- Browser Search Worker: 5 tests, 0 failures。
+- Browser Search Worker: 13 tests, 0 failures。
 
 ## 次の作業
 
