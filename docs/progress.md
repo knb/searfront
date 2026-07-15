@@ -68,6 +68,7 @@ Phase 5: 移行準備を実装済み。
 - Worker APIの入力検証、Bearer認証、SearchError HTTP変換。
 - Rails Browser Worker clientを `/v1/search/google` 契約へ更新。
 - `mode=browser` を管理者限定で追加し、SearXNGを使わずBrowserSearchJobを投入。
+- Browser engine suspended stateを検索投入前・BrowserSearchJob実行前に確認。
 
 ## Phase 進捗
 
@@ -82,6 +83,7 @@ Phase 5: 移行準備を実装済み。
 | Browser Worker Phase 2 | Google Parser、page detector、fixture test | 実装済み |
 | Browser Worker Phase 3 | Google Search API、Browserless実行、エラー応答 | 実装済み |
 | Browser Worker Phase 4 | Rails client契約更新、mode=browser | 実装済み |
+| Browser Worker Phase 5 | Rails circuit breaker guard | 実装済み |
 
 ## Phase 1 実装メモ
 
@@ -148,7 +150,7 @@ bin/ci
 - RuboCop: no offenses。
 - bundler-audit: no vulnerabilities。
 - Brakeman: no warnings。
-- Rails test: 37 tests, 121 assertions, 0 failures, 0 errors。
+- Rails test: 39 tests, 128 assertions, 0 failures, 0 errors。
 - Browser Search Worker: 19 tests, 0 failures。
 
 ## 次の作業

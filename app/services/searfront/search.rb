@@ -115,6 +115,8 @@ module Searfront
     end
 
     def enqueue_browser_search(warning)
+      raise UpstreamError, "Browser engine is suspended" if browser_engine_suspended?
+
       request_status.pending(request_id, cache_key)
       BrowserSearchJob.perform_later(request_id, request.to_h, cache_key)
 
@@ -136,6 +138,10 @@ module Searfront
 
     def minimum_results
       ENV.fetch("MINIMUM_RESULTS", MINIMUM_RESULTS).to_i
+    end
+
+    def browser_engine_suspended?
+      EngineState.new.suspended?(ENV.fetch("BROWSER_SEARCH_ENGINE", "google"))
     end
   end
 end

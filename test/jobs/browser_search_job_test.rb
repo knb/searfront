@@ -17,6 +17,10 @@ class BrowserSearchJobTest < ActiveJob::TestCase
       true
     end
 
+    def del(key)
+      store.delete(key) ? 1 : 0
+    end
+
     def close; end
 
     private
@@ -56,6 +60,22 @@ class BrowserSearchJobTest < ActiveJob::TestCase
       assert_equal "failed", status["status"]
       assert_equal "suspended", engine["status"]
       assert_equal "captcha", engine["reason"]
+    end
+  end
+
+  test "does not call worker when engine is already suspended" do
+    with_browser_env do |redis|
+      request = Searfront::SearchParams.build(ActionController::Parameters.new(q: "already suspended"))
+      cache_key = Searfront::CacheKey.for(request)
+      Searfront::EngineState.new.suspend("google", reason: "captcha", duration: 1.hour)
+
+      assert_raises(Searfront::UpstreamError) do
+        BrowserSearchJob.perform_now("request-3", request.to_h, cache_key)
+      end
+
+      status = JSON.parse(redis.get("searfront:state:v1:request:request-3"))
+      assert_equal "failed", status["status"]
+      assert_not_requested :post, "http://browser-search-worker:3000/v1/search/google"
     end
   end
 

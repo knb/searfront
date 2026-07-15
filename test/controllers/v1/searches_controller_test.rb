@@ -22,6 +22,10 @@ module V1
         true
       end
 
+      def del(key)
+        store.delete(key) ? 1 : 0
+      end
+
       def eval(_script, keys:, argv:)
         return 0 unless store[keys.first] == argv.first
 
@@ -103,6 +107,20 @@ module V1
         assert_equal "pending", body["status"]
         assert_includes body["warnings"], "browser_fallback_queued"
         assert_includes body["warnings"], "searxng_result_insufficient"
+      end
+    end
+
+    test "does not queue browser fallback when browser engine is suspended" do
+      with_search_env do
+        Searfront::EngineState.new.suspend("google", reason: "captcha", duration: 1.hour)
+        stub_searxng(results: [ searxng_result(1) ])
+
+        assert_no_enqueued_jobs only: BrowserSearchJob do
+          get "/v1/search", params: { q: "suspended browser fallback" }, headers: auth_headers
+        end
+
+        assert_response :bad_gateway
+        assert_equal "upstream_error", response.parsed_body.dig("error", "code")
       end
     end
 

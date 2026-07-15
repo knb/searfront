@@ -15,6 +15,8 @@ module Searfront
       existing = cache.read(cache_key)
       return status.complete(request_id, cache_key) if existing && fresh?(existing)
 
+      raise UpstreamError, "Browser engine is suspended" if EngineState.new.suspended?(engine)
+
       BrowserExecutionGate.new(engine).wait
       worker_response = Clients::BrowserWorkerClient.new.search(request_id: request_id, request: request, engine: engine)
       handle_diagnostics(worker_response)

@@ -17,6 +17,21 @@ module Searfront
       redis.close
     end
 
+    def suspended?(engine)
+      payload = read(engine)
+      return false unless payload
+      return false unless payload["status"] == "suspended"
+
+      resume_at = Time.iso8601(payload.fetch("resume_at"))
+      resume_at.future?
+    rescue ArgumentError, KeyError
+      false
+    rescue Redis::BaseError => error
+      raise CacheUnavailableError, error.message
+    ensure
+      redis.close
+    end
+
     def all
       engines = redis.scan_each(match: "#{prefix}*").each_with_object({}) do |key, result|
         engine = key.delete_prefix(prefix)
@@ -46,6 +61,15 @@ module Searfront
     private
 
     attr_reader :redis
+
+    def read(engine)
+      value = redis.get(key(engine))
+      return nil if value.blank?
+
+      JSON.parse(value)
+    rescue JSON::ParserError => error
+      raise CacheUnavailableError, error.message
+    end
 
     def prefix
       "searfront:state:v1:engine:"
