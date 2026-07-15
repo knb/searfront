@@ -3,8 +3,8 @@
 searfront は SearXNG の前段に配置する独立型の検索ゲートウェイです。
 検索要求を正規化し、Redis キャッシュで同一検索を再利用し、同時 miss を
 single-flight で集約します。通常経路は SearXNG とし、結果不足・429・
-CAPTCHA 検出時だけ Sidekiq 管理下の Browser Search Worker / Browserless 検索へ
-低速フォールバックします。
+CAPTCHA 検出時だけ Exa を試し、それでも不足する場合に Sidekiq 管理下の
+Browser Search Worker / Browserless 検索へ低速フォールバックします。
 
 目的は CAPTCHA やアクセス制限の突破ではありません。外部検索の回数を
 必要最小限に抑え、既存 Rails アプリ、ローカル AI エージェント、テスト
@@ -21,6 +21,7 @@ CAPTCHA 検出時だけ Sidekiq 管理下の Browser Search Worker / Browserless
 - SearXNG を高速な通常経路として維持する。
 - fresh 結果がなくても stale 結果があれば明示的に返す。
 - Browser 検索は Sidekiq で直列化し、最低実行間隔を Redis で共有する。
+- Exa 検索は Browser fallback の前段で使い、UTC日付ごとに最大500件までに制限する。
 - CAPTCHA、429、Access Denied を正常結果として保存しない。
 - `cache.status`、`sources`、`generated_at`、`warnings` を含む一貫した JSON API を提供する。
 
@@ -163,6 +164,10 @@ CAPTCHA、同意画面、automated queries / rate limit を検出した場合は
 | --- | --- | --- | --- |
 | `SEARFRONT_API_TOKENS` | Yes | | token id、secret、role。secret manager 利用を推奨。 |
 | `SEARXNG_BASE_URL` | Yes | | 例: `http://searxng:8080`。 |
+| `EXA_API_KEY` | No | | 設定時はBrowser fallback前にExa検索を試す。 |
+| `EXA_DAILY_LIMIT` | No | `500` | Exa検索の日次上限。UTC日付ごとにRedisで制御する。 |
+| `EXA_SEARCH_TYPE` | No | `auto` | Exa Search APIのsearch type。 |
+| `EXA_USER_LOCATION` | No | `JP` | Exa Search APIへ渡す国コード。 |
 | `BROWSER_SEARCH_WORKER_URL` | Yes | | 例: `http://browser-search-worker:3000`。 |
 | `BROWSER_SEARCH_WORKER_TOKEN` | Yes | | Rails から Browser Search Worker へ渡す内部 Bearer token。 |
 | `BROWSER_SEARCH_COUNTRY` | No | `JP` | Browser Search Worker へ渡す検索国。 |

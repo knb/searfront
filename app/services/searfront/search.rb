@@ -39,14 +39,25 @@ module Searfront
     attr_reader :request, :request_id, :cache, :cache_key, :digest, :request_status
 
     def fetch_and_cache
-      results = Clients::SearxngClient.new.search(request)
+      results = []
+      sources = []
+
+      searxng_results = search_searxng
+      results.concat(searxng_results)
+      sources << "searxng" if searxng_results.any?
+
       merged = ResultMerger.call(results, limit: request.limit)
+      if merged.length < minimum_results
+        exa_results = search_exa
+        results.concat(exa_results)
+        sources << "exa" if exa_results.any?
+        merged = ResultMerger.call(results, limit: request.limit)
+      end
+
       return nil if merged.length < minimum_results
 
-      response = base_response("miss", [ "searxng" ], merged)
+      response = base_response("miss", sources, merged)
       completed(cache.write(cache_key, response), "fresh")
-    rescue UpstreamError
-      nil
     end
 
     def cache_usable?(payload)
@@ -142,6 +153,27 @@ module Searfront
 
     def browser_engine_suspended?
       EngineState.new.suspended?(ENV.fetch("BROWSER_SEARCH_ENGINE", "google"))
+    end
+
+    def search_searxng
+      return [] if request.mode == "browser"
+
+      Clients::SearxngClient.new.search(request)
+    rescue UpstreamError
+      []
+    end
+
+    def search_exa
+      return [] unless exa_enabled?
+      return [] unless ExaQuota.new.consume
+
+      Clients::ExaClient.new.search(request)
+    rescue KeyError, UpstreamError
+      []
+    end
+
+    def exa_enabled?
+      ActiveModel::Type::Boolean.new.cast(ENV.fetch("EXA_SEARCH_ENABLED", "true")) && ENV["EXA_API_KEY"].present?
     end
   end
 end

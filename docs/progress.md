@@ -71,6 +71,7 @@ Phase 5: 移行準備を実装済み。
 - Browser engine suspended stateを検索投入前・BrowserSearchJob実行前に確認。
 - Browser Search Workerのデバッグ成果物保存を追加。
 - ルートREADMEにBrowser Search Worker / Browserlessの起動、設定、手動検索、debug artifactを追記。
+- Browser fallback前段にExa検索を追加し、Redisで1日500件の上限を制御。
 
 ## Phase 進捗
 
@@ -88,6 +89,7 @@ Phase 5: 移行準備を実装済み。
 | Browser Worker Phase 5 | Rails circuit breaker guard | 実装済み |
 | Browser Worker Phase 6 | Debug artifact保存 | 実装済み |
 | Browser Worker Phase 7 | README更新 | 実装済み |
+| Exa Phase 1 | Exa fallback、日次quota | 実装済み |
 
 ## Phase 1 実装メモ
 
@@ -154,7 +156,7 @@ bin/ci
 - RuboCop: no offenses。
 - bundler-audit: no vulnerabilities。
 - Brakeman: no warnings。
-- Rails test: 39 tests, 128 assertions, 0 failures, 0 errors。
+- Rails test: 43 tests, 145 assertions, 0 failures, 0 errors。
 - Browser Search Worker: 20 tests, 0 failures。
 
 ## 次の作業

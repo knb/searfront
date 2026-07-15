@@ -26,6 +26,14 @@ module V1
         store.delete(key) ? 1 : 0
       end
 
+      def incr(key)
+        store[key] = store.fetch(key, "0").to_i + 1
+      end
+
+      def expire(_key, _seconds)
+        true
+      end
+
       def eval(_script, keys:, argv:)
         return 0 unless store[keys.first] == argv.first
 
@@ -110,6 +118,37 @@ module V1
       end
     end
 
+    test "uses exa before browser fallback when searxng is insufficient" do
+      with_search_env({ "EXA_API_KEY" => "exa-key" }) do
+        stub_searxng(results: [ searxng_result(1) ])
+        stub_exa(results: [ exa_result(1), exa_result(2) ])
+
+        assert_no_enqueued_jobs only: BrowserSearchJob do
+          get "/v1/search", params: { q: "needs exa fallback" }, headers: auth_headers
+        end
+
+        assert_response :success
+        body = response.parsed_body
+        assert_equal "completed", body["status"]
+        assert_equal [ "searxng", "exa" ], body["sources"]
+        assert_equal 3, body["results"].length
+        assert_requested :post, "https://api.exa.ai/search"
+      end
+    end
+
+    test "does not call exa after daily limit is exhausted" do
+      with_search_env({ "EXA_API_KEY" => "exa-key", "EXA_DAILY_LIMIT" => "0" }) do
+        stub_searxng(results: [ searxng_result(1) ])
+
+        assert_enqueued_with(job: BrowserSearchJob, queue: "browser_search") do
+          get "/v1/search", params: { q: "exa quota exhausted" }, headers: auth_headers
+        end
+
+        assert_response :accepted
+        assert_not_requested :post, "https://api.exa.ai/search"
+      end
+    end
+
     test "does not queue browser fallback when browser engine is suspended" do
       with_search_env do
         Searfront::EngineState.new.suspend("google", reason: "captcha", duration: 1.hour)
@@ -171,18 +210,18 @@ module V1
 
     private
 
-    def with_search_env(api_tokens: "test:test-secret:user")
+    def with_search_env(extra_env = {}, api_tokens: "test:test-secret:user")
       store = {}
       redis = FakeRedis.new(store)
 
-      with_env(
+      with_env({
         "SEARFRONT_API_TOKENS" => api_tokens,
         "CACHE_REDIS_URL" => "redis://cache.example:6379/0",
         "STATE_REDIS_URL" => "redis://state.example:6379/0",
         "SIDEKIQ_REDIS_URL" => "redis://sidekiq.example:6379/0",
         "SEARXNG_BASE_URL" => "http://searxng:8080/",
         "MINIMUM_RESULTS" => "3"
-      ) do
+      }.merge(extra_env)) do
         with_redis_stub(redis) do
           yield(redis)
         end
@@ -221,6 +260,24 @@ module V1
         url: "https://example#{index}.org/path?utm_source=test&b=2&a=1#fragment",
         content: "Snippet #{index}",
         engines: [ "google" ]
+      }
+    end
+
+    def stub_exa(results:)
+      stub_request(:post, "https://api.exa.ai/search")
+        .with(headers: { "x-api-key" => "exa-key" })
+        .to_return(
+          status: 200,
+          headers: { "Content-Type" => "application/json" },
+          body: JSON.generate({ results: results })
+        )
+    end
+
+    def exa_result(index)
+      {
+        title: "Exa Result #{index}",
+        url: "https://exa#{index}.example.org/path?utm_source=test#fragment",
+        highlights: [ "Exa snippet #{index}" ]
       }
     end
 
