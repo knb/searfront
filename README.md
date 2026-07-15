@@ -3,7 +3,7 @@
 searfront は SearXNG の前段に配置する独立型の検索ゲートウェイです。
 検索要求を正規化し、Redis キャッシュで同一検索を再利用し、同時 miss を
 single-flight で集約します。通常経路は SearXNG とし、結果不足・429・
-CAPTCHA 検出時だけ Sidekiq 管理下の Playwright/Browserless 検索へ
+CAPTCHA 検出時だけ Sidekiq 管理下の Browser Search Worker / Browserless 検索へ
 低速フォールバックします。
 
 目的は CAPTCHA やアクセス制限の突破ではありません。外部検索の回数を
@@ -33,11 +33,11 @@ CAPTCHA 検出時だけ Sidekiq 管理下の Playwright/Browserless 検索へ
 - `searfront-browser-worker`: browser fallback 専用の Sidekiq worker。初期並列数は 1。
 - `Redis`: 検索キャッシュ、lock、request status、engine state、Sidekiq 用途で利用。
 - `SearXNG`: 通常の同期検索経路。
-- `Browser Worker`: Node.js/TypeScript 製の Playwright 検索アダプター。
-- `Browserless`: Browser Worker から使う self-hosted headless browser 基盤。
+- `Browser Search Worker`: Node.js/TypeScript 製の Google 検索アダプター。
+- `Browserless`: Browser Search Worker から使う self-hosted headless browser 基盤。
 
 公開するのは searfront の HTTP API のみです。Redis、SearXNG、Browser
-Worker、Browserless は内部ネットワークに閉じます。
+Search Worker、Browserless は内部ネットワークに閉じます。
 
 ## API
 
@@ -84,6 +84,29 @@ curl -H "Authorization: Bearer $SEARFRONT_TOKEN" \
 - `GET /metrics`: Prometheus 互換 metrics。
 
 Rails 生成時の health check route として `/up` も残しています。
+
+### Browser Search Worker API
+
+Rails から内部ネットワーク経由で呼び出す API です。ホストへ公開しない前提です。
+
+- `GET /health`: Browserless 接続確認を含む worker health check。
+- `POST /v1/search/google`: Google検索1ページ目を取得し、正規化済みJSONを返す。
+
+手動確認例:
+
+```sh
+curl -X POST http://localhost:3000/v1/search/google \
+  -H "Authorization: Bearer $BROWSER_WORKER_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "llama.cpp Vulkan",
+    "language": "ja",
+    "country": "JP",
+    "limit": 10
+  }'
+```
+
+CAPTCHA、同意画面、automated queries / rate limit を検出した場合は、突破や自動同意を行わず `blocked` と機械判定可能な `error.code` を返します。
 
 ## レスポンス例
 
@@ -140,7 +163,9 @@ Rails 生成時の health check route として `/up` も残しています。
 | --- | --- | --- | --- |
 | `SEARFRONT_API_TOKENS` | Yes | | token id、secret、role。secret manager 利用を推奨。 |
 | `SEARXNG_BASE_URL` | Yes | | 例: `http://searxng:8080`。 |
-| `BROWSER_WORKER_BASE_URL` | Yes | | 例: `http://browser-worker:3000`。 |
+| `BROWSER_SEARCH_WORKER_URL` | Yes | | 例: `http://browser-search-worker:3000`。 |
+| `BROWSER_SEARCH_WORKER_TOKEN` | Yes | | Rails から Browser Search Worker へ渡す内部 Bearer token。 |
+| `BROWSER_SEARCH_COUNTRY` | No | `JP` | Browser Search Worker へ渡す検索国。 |
 | `CACHE_REDIS_URL` | Yes | | 検索結果キャッシュ用 Redis。 |
 | `STATE_REDIS_URL` | Yes | | lock、engine state、request status 用 Redis。 |
 | `SIDEKIQ_REDIS_URL` | Yes | | Sidekiq 用 Redis。 |
@@ -152,7 +177,20 @@ Rails 生成時の health check route として `/up` も残しています。
 | `RATE_LIMIT_SUSPEND_SECONDS` | No | `7200` | 429 検出時の engine 停止時間。 |
 | `LOG_QUERY_TEXT` | No | `false` | raw query text をログに含めるか。 |
 | `SEARFRONT_RATE_LIMIT_PER_MINUTE` | No | `60` | Bearer token または送信元 IP 単位の rate limit。 |
-| `BROWSER_WORKER_TOKEN` | No | | Browser Worker へ渡す内部 Bearer token。 |
+
+Browser Search Worker 側の主要な環境変数:
+
+| 変数 | 必須 | 初期値 | 説明 |
+| --- | --- | --- | --- |
+| `BROWSER_WORKER_TOKEN` | Production | | Worker API の Bearer token。 |
+| `BROWSERLESS_WS_ENDPOINT` | Yes | `ws://browserless:3000` | Browserless WebSocket endpoint。 |
+| `BROWSERLESS_TOKEN` | No | | Browserless token。 |
+| `GOOGLE_MIN_INTERVAL_MS` | No | `15000` | Worker内のGoogle検索最低間隔。 |
+| `GOOGLE_INTERVAL_JITTER_MS` | No | `5000` | Worker内の追加jitter。 |
+| `GOOGLE_NAVIGATION_TIMEOUT_MS` | No | `30000` | Google検索ページ遷移timeout。 |
+| `GOOGLE_RESULT_TIMEOUT_MS` | No | `10000` | 検索結果DOM待機timeout。 |
+| `DEBUG_ARTIFACTS_ENABLED` | No | `false` | 失敗時debug artifact保存を有効化する。 |
+| `DEBUG_ARTIFACTS_DIR` | No | `./debug` | artifact保存先。 |
 
 ## 開発
 
@@ -162,7 +200,7 @@ Rails 生成時の health check route として `/up` も残しています。
 - Bundler。
 - Redis。
 - SearXNG。
-- Browser fallback 実装後は Browser Worker と Browserless。
+- Browser fallback 実装後は Browser Search Worker と Browserless。
 
 依存関係をインストールします。
 
@@ -186,10 +224,37 @@ bin/dev
 - `bundle exec sidekiq -C config/sidekiq.yml`
 - `bundle exec sidekiq -C config/sidekiq_browser.yml`
 
+Browser Search Worker と Browserless をコンテナで起動する場合:
+
+```sh
+BROWSER_WORKER_TOKEN=change-me \
+BROWSERLESS_TOKEN=change-me-browserless \
+docker compose up --build browserless browser-search-worker
+```
+
+`compose.yaml` は Browserless と Browser Search Worker のみを定義しています。Rails API、Redis、SearXNG は既存のローカル環境または運用構成に合わせて起動してください。初期状態では Browserless / Browser Search Worker のポートをホスト公開せず、Docker内部ネットワークで使います。
+
+Browser Search Workerを単体開発する場合:
+
+```sh
+cd browser-search-worker
+npm install
+npm run dev
+```
+
 テストを実行します。
 
 ```sh
 bin/rails test
+```
+
+Browser Search Workerのテストを実行します。
+
+```sh
+cd browser-search-worker
+npm test
+npm run build
+npm run lint
 ```
 
 CI 相当のローカルチェックを実行します。
@@ -207,16 +272,18 @@ bin/ci
 
 1. 基盤: 認証、healthz、readyz、Redis 接続、構造化ログ。
 2. SearXNG + cache: query 正規化、cache key、fresh/stale、single-flight、結果統合。
-3. Sidekiq fallback: request status、`BrowserSearchJob`、Browser Worker API、interval 制御。
+3. Sidekiq fallback: request status、`BrowserSearchJob`、Browser Search Worker API、interval 制御。
 4. 運用強化: metrics、engine 管理 API、rate limit、障害試験。
 5. 移行: 既存 Rails アプリやローカル AI エージェントの検索先を searfront に変更。
 
 ## セキュリティ
 
 - LAN 内運用でも Bearer token または reverse proxy 認証を使う。
-- Redis、SearXNG、Browser Worker、Browserless は外部公開しない。
+- Redis、SearXNG、Browser Search Worker、Browserless は外部公開しない。
 - CAPTCHA 自動解決や bot 回避を実装しない。
+- Browser Search Worker は stealth plugin、proxy rotation、Googleログイン、CAPTCHA solver を使わない。
 - 既定では raw query text をログへ出さない。
+- debug artifact は既定OFF。保存時も `metadata.json` には検索語本文を保存せず SHA-256 digest のみを記録する。
 - browser fallback は低頻度の最後の手段として扱い、検索エンジンの利用規約とアクセス制限を尊重する。
 
 ## License

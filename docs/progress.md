@@ -70,6 +70,7 @@ Phase 5: 移行準備を実装済み。
 - `mode=browser` を管理者限定で追加し、SearXNGを使わずBrowserSearchJobを投入。
 - Browser engine suspended stateを検索投入前・BrowserSearchJob実行前に確認。
 - Browser Search Workerのデバッグ成果物保存を追加。
+- ルートREADMEにBrowser Search Worker / Browserlessの起動、設定、手動検索、debug artifactを追記。
 
 ## Phase 進捗
 
@@ -86,6 +87,7 @@ Phase 5: 移行準備を実装済み。
 | Browser Worker Phase 4 | Rails client契約更新、mode=browser | 実装済み |
 | Browser Worker Phase 5 | Rails circuit breaker guard | 実装済み |
 | Browser Worker Phase 6 | Debug artifact保存 | 実装済み |
+| Browser Worker Phase 7 | README更新 | 実装済み |
 
 ## Phase 1 実装メモ
 
@@ -162,5 +164,5 @@ bin/ci
 - 既存 Rails アプリやローカル AI Agent の検索先を searfront に変更する。
 - 直接 SearXNG 呼び出しを停止する。
 - cache hit 率、CAPTCHA / 429 回数、browser fallback 件数を計測する。
-- 実運用環境の Redis / SearXNG / Browser Worker / Browserless URL と token を設定する。
+- 実運用環境の Redis / SearXNG / Browser Search Worker / Browserless URL と token を設定する。
 - Kamal / Docker network 上で内部サービスを外部公開しない構成を確認する。
