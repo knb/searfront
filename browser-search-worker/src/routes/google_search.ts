@@ -23,7 +23,7 @@ export function registerGoogleSearchRoute(
     }
 
     try {
-      const response = await searchGoogle(parsed.data, config, dependencies);
+      const response = await searchGoogle({ ...parsed.data, requestId: request.id }, config, dependencies);
       return reply.code(200).send(response);
     } catch (error) {
       if (error instanceof SearchError) {

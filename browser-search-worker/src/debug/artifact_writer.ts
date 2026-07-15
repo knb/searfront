@@ -10,7 +10,22 @@ export type ArtifactMetadata = {
   createdAt: string;
 };
 
-export async function writeDebugMetadata(baseDir: string, metadata: ArtifactMetadata): Promise<string> {
+export type DebugArtifact = {
+  metadata: ArtifactMetadata;
+  html: string;
+  screenshot?: Uint8Array | Buffer;
+};
+
+export async function writeDebugArtifact(baseDir: string, artifact: DebugArtifact): Promise<string> {
+  const dir = await writeDebugMetadata(baseDir, artifact.metadata);
+  await writeFile(join(dir, "page.html"), artifact.html);
+  if (artifact.screenshot) {
+    await writeFile(join(dir, "screenshot.png"), artifact.screenshot);
+  }
+  return dir;
+}
+
+async function writeDebugMetadata(baseDir: string, metadata: ArtifactMetadata): Promise<string> {
   const digest = createHash("sha256").update(metadata.query).digest("hex");
   const dir = join(baseDir, `${metadata.createdAt.replace(/[:.]/g, "")}-${metadata.requestId}`);
   await mkdir(dir, { recursive: true });

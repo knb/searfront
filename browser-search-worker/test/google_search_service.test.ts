@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { loadConfig } from "../src/config.js";
@@ -58,6 +59,43 @@ describe("searchGoogle", () => {
       statusCode: 502,
     } satisfies Partial<SearchError>);
   });
+
+  it("writes debug artifacts when enabled", async () => {
+    const debugDir = mkdtempSync(join(tmpdir(), "searfront-debug-"));
+    const browser = fakeBrowser(readFixture("google_captcha.html"), "https://www.google.com/sorry/index");
+    const debugConfig = loadConfig({
+      NODE_ENV: "test",
+      BROWSERLESS_WS_ENDPOINT: "ws://browserless:3000",
+      GOOGLE_MIN_INTERVAL_MS: "0",
+      GOOGLE_INTERVAL_JITTER_MS: "0",
+      DEBUG_ARTIFACTS_ENABLED: "true",
+      DEBUG_ARTIFACTS_DIR: debugDir,
+    });
+
+    try {
+      await expect(
+        searchGoogle({ query: "secret query", language: "ja", country: "JP", limit: 10, requestId: "request-1" }, debugConfig, {
+          connectBrowser: async () => browser,
+        }),
+      ).rejects.toMatchObject({ code: "google_captcha" });
+
+      const entries = readdirSync(debugDir);
+      expect(entries).toHaveLength(1);
+      const dir = join(debugDir, entries[0] ?? "");
+      const metadata = JSON.parse(readFileSync(join(dir, "metadata.json"), "utf8"));
+      expect(metadata).toMatchObject({
+        request_id: "request-1",
+        status: "captcha",
+        url: "https://www.google.com/sorry/index",
+      });
+      expect(metadata.query_digest).toMatch(/^sha256:/);
+      expect(JSON.stringify(metadata)).not.toContain("secret query");
+      expect(readFileSync(join(dir, "page.html"), "utf8")).toContain("g-recaptcha");
+      expect(readFileSync(join(dir, "screenshot.png"))).toEqual(Buffer.from("png"));
+    } finally {
+      rmSync(debugDir, { recursive: true, force: true });
+    }
+  });
 });
 
 function readFixture(name: string): string {
@@ -78,6 +116,7 @@ function fakeBrowser(html: string, url: string) {
     waitForSelector: async () => undefined,
     content: async () => html,
     url: () => url,
+    screenshot: async () => Buffer.from("png"),
   };
   const context = {
     newPage: async () => page,

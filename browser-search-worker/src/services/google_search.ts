@@ -1,6 +1,8 @@
 import type { Browser, BrowserContext, HTTPRequest, Page } from "puppeteer-core";
+import { randomUUID } from "node:crypto";
 import { connectBrowserless } from "../browser.js";
 import type { Config } from "../config.js";
+import { writeDebugArtifact } from "../debug/artifact_writer.js";
 import {
   browserlessUnavailableError,
   googleCaptchaError,
@@ -20,6 +22,7 @@ export type GoogleSearchInput = {
   language: string;
   country: string;
   limit: number;
+  requestId?: string;
 };
 
 export type GoogleSearchDependencies = {
@@ -42,10 +45,12 @@ export async function searchGoogle(
 
   const browser = await connectBrowser(config, dependencies);
   let context: BrowserContext | undefined;
+  let page: Page | undefined;
+  let artifactWritten = false;
 
   try {
     context = await browser.createBrowserContext();
-    const page = await context.newPage();
+    page = await context.newPage();
     await configurePage(page);
 
     const searchUrl = buildGoogleSearchUrl(input);
@@ -56,6 +61,7 @@ export async function searchGoogle(
       });
       await waitForSearchPage(page, config.googleResultTimeoutMs);
     } catch (error) {
+      artifactWritten = await writeArtifactIfEnabled(config, page, input, "timeout");
       throw mapTimeoutError(error);
     }
 
@@ -63,24 +69,34 @@ export async function searchGoogle(
     const detected = detectPageState(html, page.url());
 
     if (detected.captcha) {
+      artifactWritten = await writeArtifactIfEnabled(config, page, input, "captcha");
       throw googleCaptchaError();
     }
     if (detected.rateLimited) {
+      artifactWritten = await writeArtifactIfEnabled(config, page, input, "rate_limited");
       throw googleRateLimitedError();
     }
     if (detected.consentPage) {
+      artifactWritten = await writeArtifactIfEnabled(config, page, input, "consent_required");
       throw googleConsentRequiredError();
     }
 
     const results = parseGoogleResults(html).slice(0, input.limit);
     if (html.includes("id=\"search\"") && results.length === 0) {
+      await writeArtifactIfEnabled(config, page, input, "empty");
       return buildResponse(input, "empty", results, detected, elapsedMs(startedAt, dependencies));
     }
     if (results.length === 0) {
+      artifactWritten = await writeArtifactIfEnabled(config, page, input, "parse_error");
       throw googleParseError();
     }
 
     return buildResponse(input, "ok", results, detected, elapsedMs(startedAt, dependencies));
+  } catch (error) {
+    if (!artifactWritten && !(error instanceof SearchError) && page) {
+      await writeArtifactIfEnabled(config, page, input, "unexpected_error");
+    }
+    throw error;
   } finally {
     await context?.close();
     await browser.disconnect();
@@ -146,7 +162,7 @@ function mapTimeoutError(error: unknown): SearchError {
     return error;
   }
 
-  throw googleTimeoutError();
+  return googleTimeoutError();
 }
 
 function buildResponse(
@@ -172,4 +188,30 @@ function buildResponse(
 
 function elapsedMs(startedAt: number, dependencies: GoogleSearchDependencies): number {
   return Math.max((dependencies.now?.() ?? Date.now()) - startedAt, 0);
+}
+
+async function writeArtifactIfEnabled(
+  config: Config,
+  page: Page,
+  input: GoogleSearchInput,
+  status: string,
+): Promise<boolean> {
+  if (!config.debugArtifactsEnabled) {
+    return false;
+  }
+
+  const html = await page.content();
+  const screenshot = await page.screenshot({ type: "png" });
+  await writeDebugArtifact(config.debugArtifactsDir, {
+    metadata: {
+      requestId: input.requestId ?? randomUUID(),
+      query: input.query,
+      url: page.url(),
+      status,
+      createdAt: new Date().toISOString(),
+    },
+    html,
+    screenshot,
+  });
+  return true;
 }
