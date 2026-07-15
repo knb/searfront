@@ -31,6 +31,14 @@ describe("searchGoogle", () => {
     expect(response.elapsed_ms).toBe(40);
     expect(response.results).toHaveLength(2);
     expect(response.results[0]?.url).toBe("https://github.com/ggml-org/llama.cpp?utm_source=google");
+    expect(browser.actions).toEqual([
+      ["goto", "https://www.google.com/?hl=ja&gl=JP"],
+      ["waitForSelector", "textarea[name='q'], input[name='q']"],
+      ["type", "textarea[name='q'], input[name='q']", "example"],
+      ["press", "Enter"],
+      ["waitForNavigation"],
+      ["waitForSelector", "#search, form[action*='/sorry'], iframe[src*='recaptcha'], body"],
+    ]);
   });
 
   it("raises a CAPTCHA error when Google blocks the page", async () => {
@@ -108,12 +116,28 @@ function fakeClock(...values: number[]): () => number {
 }
 
 function fakeBrowser(html: string, url: string) {
+  const actions: unknown[][] = [];
   const page = {
     setViewport: async () => undefined,
     setRequestInterception: async () => undefined,
     on: () => page,
-    goto: async () => undefined,
-    waitForSelector: async () => undefined,
+    goto: async (targetUrl: string) => {
+      actions.push(["goto", targetUrl]);
+    },
+    waitForSelector: async (selector: string) => {
+      actions.push(["waitForSelector", selector]);
+    },
+    type: async (selector: string, value: string) => {
+      actions.push(["type", selector, value]);
+    },
+    keyboard: {
+      press: async (key: string) => {
+        actions.push(["press", key]);
+      },
+    },
+    waitForNavigation: async () => {
+      actions.push(["waitForNavigation"]);
+    },
     content: async () => html,
     url: () => url,
     screenshot: async () => Buffer.from("png"),
@@ -123,6 +147,7 @@ function fakeBrowser(html: string, url: string) {
     close: async () => undefined,
   };
   return {
+    actions,
     createBrowserContext: async () => context,
     disconnect: async () => undefined,
   };

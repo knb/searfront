@@ -53,12 +53,8 @@ export async function searchGoogle(
     page = await context.newPage();
     await configurePage(page);
 
-    const searchUrl = buildGoogleSearchUrl(input);
     try {
-      await page.goto(searchUrl, {
-        waitUntil: "domcontentloaded",
-        timeout: config.googleNavigationTimeoutMs,
-      });
+      await submitSearchFromHomepage(page, input, config);
       await waitForSearchPage(page, config.googleResultTimeoutMs);
     } catch (error) {
       artifactWritten = await writeArtifactIfEnabled(config, page, input, "timeout");
@@ -141,13 +137,27 @@ async function configurePage(page: Page): Promise<void> {
   });
 }
 
-function buildGoogleSearchUrl(input: GoogleSearchInput): string {
-  const url = new URL("https://www.google.com/search");
-  url.searchParams.set("q", input.query);
+async function submitSearchFromHomepage(page: Page, input: GoogleSearchInput, config: Config): Promise<void> {
+  const url = buildGoogleHomeUrl(input);
+  await page.goto(url, {
+    waitUntil: "domcontentloaded",
+    timeout: config.googleNavigationTimeoutMs,
+  });
+  await page.waitForSelector("textarea[name='q'], input[name='q']", {
+    timeout: config.googleResultTimeoutMs,
+  });
+  await page.type("textarea[name='q'], input[name='q']", input.query);
+  await page.keyboard.press("Enter");
+  await page.waitForNavigation({
+    waitUntil: "domcontentloaded",
+    timeout: config.googleNavigationTimeoutMs,
+  });
+}
+
+function buildGoogleHomeUrl(input: GoogleSearchInput): string {
+  const url = new URL("https://www.google.com/");
   url.searchParams.set("hl", input.language);
   url.searchParams.set("gl", input.country);
-  url.searchParams.set("num", input.limit.toString());
-  url.searchParams.set("filter", "0");
   return url.toString();
 }
 

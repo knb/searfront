@@ -100,6 +100,11 @@ function fakeBrowser(html: string, url: string) {
     on: () => page,
     goto: async () => undefined,
     waitForSelector: async () => undefined,
+    type: async () => undefined,
+    keyboard: {
+      press: async () => undefined,
+    },
+    waitForNavigation: async () => undefined,
     content: async () => html,
     url: () => url,
   };
