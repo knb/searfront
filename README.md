@@ -83,8 +83,7 @@ curl -H "Authorization: Bearer $SEARFRONT_TOKEN" \
 - `DELETE /v1/cache`: 条件付きキャッシュ削除。管理用途。
 - `GET /metrics`: Prometheus 互換 metrics。
 
-これらは設計上の予定 API です。現在の Rails 生成時点では health check
-route として `/up` が存在します。
+Rails 生成時の health check route として `/up` も残しています。
 
 ## レスポンス例
 
@@ -152,6 +151,8 @@ route として `/up` が存在します。
 | `CAPTCHA_SUSPEND_SECONDS` | No | `86400` | CAPTCHA 検出時の engine 停止時間。 |
 | `RATE_LIMIT_SUSPEND_SECONDS` | No | `7200` | 429 検出時の engine 停止時間。 |
 | `LOG_QUERY_TEXT` | No | `false` | raw query text をログに含めるか。 |
+| `SEARFRONT_RATE_LIMIT_PER_MINUTE` | No | `60` | Bearer token または送信元 IP 単位の rate limit。 |
+| `BROWSER_WORKER_TOKEN` | No | | Browser Worker へ渡す内部 Bearer token。 |
 
 ## 開発
 
@@ -186,6 +187,8 @@ CI 相当のローカルチェックを実行します。
 ```sh
 bin/ci
 ```
+
+移行手順と運用確認は [`docs/migration.md`](docs/migration.md) を参照してください。
 
 このアプリケーションは Rails API-only かつ Active Record なしで生成しているため、
 初期構成では database setup は不要です。

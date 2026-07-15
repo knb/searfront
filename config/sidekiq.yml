@@ -1,0 +1,5 @@
+:concurrency: <%= ENV.fetch("SIDEKIQ_CONCURRENCY", 2) %>
+:queues:
+  - cache_refresh
+  - maintenance
+  - default

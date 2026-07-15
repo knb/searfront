@@ -7,7 +7,7 @@
 
 ## 現在の状態
 
-Phase 4: 運用強化 API と rate limit を実装済み。
+Phase 5: 移行準備を実装済み。
 
 実装済み:
 
@@ -48,6 +48,12 @@ Phase 4: 運用強化 API と rate limit を実装済み。
 - `DELETE /v1/cache` 条件付き cache 削除。
 - Rack::Attack による token / IP 単位の rate limit。
 - Phase 4 の controller / rate limit test。
+- production Active Job adapter を Sidekiq に設定。
+- Sidekiq 通常 worker / browser worker の queue 設定。
+- Kamal の web / worker / browser worker process 設定例。
+- 追跡可能な環境変数サンプル `config/searfront.env.example`。
+- クライアント移行手順 `docs/migration.md`。
+- searfront 実環境確認用 smoke script。
 
 ## Phase 進捗
 
@@ -57,7 +63,7 @@ Phase 4: 運用強化 API と rate limit を実装済み。
 | Phase 2 | SearXNG + cache、query 正規化、cache key、fresh/stale、single-flight、結果統合 | 実装済み |
 | Phase 3 | Sidekiq fallback、request status、BrowserSearchJob、Browser Worker API、interval / circuit breaker | 実装済み |
 | Phase 4 | metrics、engine 管理 API、Rack::Attack、alert、障害試験 | 実装済み |
-| Phase 5 | 既存 Rails / AI Agent の検索先を searfront へ移行 | 未着手 |
+| Phase 5 | 既存 Rails / AI Agent の検索先を searfront へ移行 | 準備済み |
 
 ## Phase 1 実装メモ
 
@@ -113,7 +119,7 @@ raw query text は記録しない。
 
 ## 検証
 
-Phase 4 実装後に次を実行し、成功を確認済み。
+Phase 5 実装後に次を実行し、成功を確認済み。
 
 ```sh
 bin/ci
@@ -128,7 +134,7 @@ bin/ci
 
 ## 次の作業
 
-Phase 5 では次を実施する。
+残作業は実環境での移行作業。
 
 - 既存 Rails アプリやローカル AI Agent の検索先を searfront に変更する。
 - 直接 SearXNG 呼び出しを停止する。
