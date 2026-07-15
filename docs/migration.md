@@ -8,6 +8,7 @@ searfront へ切り替えるためのチェックリストです。
 - searfront Web process が起動している。
 - `searfront-worker` と `searfront-browser-worker` が起動している。
 - Redis、SearXNG、Browser Worker、Browserless は searfront と同じ内部 network から到達できる。
+- Exa fallback を使う場合は `EXA_API_KEY` を secret として設定している。
 - クライアントには searfront の Bearer token だけを配布し、SearXNG は直接公開しない。
 
 ## 起動プロセス
@@ -49,13 +50,23 @@ bundle exec sidekiq -C config/sidekiq_browser.yml
 
 - `SEARFRONT_API_TOKENS`
 - `SEARXNG_BASE_URL`
-- `BROWSER_WORKER_BASE_URL`
+- `BROWSER_SEARCH_WORKER_URL`
+- `BROWSER_SEARCH_WORKER_TOKEN`
 - `CACHE_REDIS_URL`
 - `STATE_REDIS_URL`
 - `SIDEKIQ_REDIS_URL`
 - `RAILS_MASTER_KEY`
 
+任意:
+
+- `EXA_SEARCH_ENABLED`
+- `EXA_API_KEY`
+- `EXA_DAILY_LIMIT`
+- `EXA_SEARCH_TYPE`
+- `EXA_USER_LOCATION`
+
 本番では token と Redis URL を secret manager または deployment secret として管理する。
+`EXA_API_KEY` も同様に secret として扱う。
 
 ## クライアント移行
 
@@ -82,6 +93,7 @@ curl -sS \
 - `/metrics` に `searfront_requests_total` が出る。
 - 同一 query の2回目以降で `cache.status=fresh` が返る。
 - SearXNG 停止時に stale があれば `cache.status=stale` が返る。
+- SearXNG の結果不足時、`EXA_API_KEY` 設定環境では Exa が browser fallback 前に試行される。
 - 結果不足時に `202 Accepted` となり、poll 後に完了結果を取得できる。
 - `GET /v1/engines` で CAPTCHA / 429 による suspension を確認できる。
 

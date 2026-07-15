@@ -1,13 +1,15 @@
 # AGENTS.md
 
 このファイルは `docs/searfront_design_v0.1.md` から抽出した、searfront
-実装時の作業指針です。詳細仕様や判断に迷う項目は設計書を正本とします。
+実装時の作業指針です。詳細仕様や判断に迷う項目は設計書を正本とし、
+実装済みの追加差分は `docs/progress.md` も参照します。
 
 ## プロジェクトの目的
 
 - searfront は SearXNG の前段に置く独立型検索ゲートウェイ。
-- 通常経路は SearXNG。結果不足、429、CAPTCHA、全エンジン失敗時のみ
-  Sidekiq 管理下の Browser Worker / Playwright / Browserless へ fallback する。
+- 通常経路は SearXNG。結果不足、429、CAPTCHA、全エンジン失敗時は
+  Exa を日次上限付きで試し、それでも不足する場合のみ Sidekiq 管理下の
+  Browser Worker / Playwright / Browserless へ fallback する。
 - 目的は外部検索回数を減らし、同一検索を再利用し、AI agent やテストの
   反復検索を安定させること。
 - CAPTCHA 自動解決、ステルス、bot 回避は実装しない。
@@ -39,7 +41,7 @@
   直接呼ばない。
 - Search service: 検索ユースケース全体の orchestration。DOM 解析や HTTP
   transport 詳細を持たない。
-- Client: SearXNG / Browser Worker 通信、timeout、response 変換。cache や
+- Client: SearXNG / Exa / Browser Worker 通信、timeout、response 変換。cache や
   業務判断を持たない。
 - Cache / State: Redis key、serialization、TTL、lock。Controller に依存しない。
 - Job: 非同期境界、冪等性確認、service 呼び出し。複雑な統合ロジックを

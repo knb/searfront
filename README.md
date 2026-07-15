@@ -46,7 +46,7 @@ Search Worker、Browserless は内部ネットワークに閉じます。
 
 ### `GET /v1/search`
 
-検索クエリを受け取り、cache、SearXNG、browser fallback の順に利用して
+検索クエリを受け取り、cache、SearXNG、Exa、browser fallback の順に利用して
 統一形式の検索結果を返します。利用可能な結果がまだない場合は
 `202 Accepted` と `request_id` を返します。
 
@@ -164,7 +164,9 @@ CAPTCHA、同意画面、automated queries / rate limit を検出した場合は
 | --- | --- | --- | --- |
 | `SEARFRONT_API_TOKENS` | Yes | | token id、secret、role。secret manager 利用を推奨。 |
 | `SEARXNG_BASE_URL` | Yes | | 例: `http://searxng:8080`。 |
+| `EXA_SEARCH_ENABLED` | No | `true` | Exa検索を有効化する。`EXA_API_KEY` 未設定時は呼び出さない。 |
 | `EXA_API_KEY` | No | | 設定時はBrowser fallback前にExa検索を試す。 |
+| `EXA_BASE_URL` | No | `https://api.exa.ai/search` | Exa Search API endpoint。 |
 | `EXA_DAILY_LIMIT` | No | `500` | Exa検索の日次上限。UTC日付ごとにRedisで制御する。 |
 | `EXA_SEARCH_TYPE` | No | `auto` | Exa Search APIのsearch type。 |
 | `EXA_USER_LOCATION` | No | `JP` | Exa Search APIへ渡す国コード。 |
@@ -205,7 +207,8 @@ Browser Search Worker 側の主要な環境変数:
 - Bundler。
 - Redis。
 - SearXNG。
-- Browser fallback 実装後は Browser Search Worker と Browserless。
+- 任意: Exa Search API key。
+- Browser Search Worker と Browserless。
 
 依存関係をインストールします。
 
