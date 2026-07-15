@@ -7,7 +7,7 @@
 
 ## 現在の状態
 
-Phase 1: 基盤を実装済み。
+Phase 2: SearXNG + cache の同期検索経路を実装済み。
 
 実装済み:
 
@@ -24,13 +24,23 @@ Phase 1: 基盤を実装済み。
 - request id 付きの統一 error response。
 - raw query text を出さない構造化 request log。
 - Phase 1 の controller / service test。
+- `/v1/search` search endpoint。
+- query 正規化。
+- cache key canonical payload と digest。
+- Redis result cache。
+- fresh / stale response。
+- Redis `SET NX PX` による single-flight lock。
+- SearXNG JSON client。
+- URL canonicalization。
+- deterministic な result merge。
+- Phase 2 の controller / service test。
 
 ## Phase 進捗
 
 | Phase | 内容 | 状態 |
 | --- | --- | --- |
 | Phase 1 | Rails API 基盤、認証、healthz、Redis 接続、構造化ログ | 実装済み |
-| Phase 2 | SearXNG + cache、query 正規化、cache key、fresh/stale、single-flight、結果統合 | 未着手 |
+| Phase 2 | SearXNG + cache、query 正規化、cache key、fresh/stale、single-flight、結果統合 | 実装済み |
 | Phase 3 | Sidekiq fallback、request status、BrowserSearchJob、Browser Worker API、interval / circuit breaker | 未着手 |
 | Phase 4 | metrics、engine 管理 API、Rack::Attack、alert、障害試験 | 未着手 |
 | Phase 5 | 既存 Rails / AI Agent の検索先を searfront へ移行 | 未着手 |
@@ -89,7 +99,7 @@ raw query text は記録しない。
 
 ## 検証
 
-Phase 1 実装後に次を実行し、成功を確認済み。
+Phase 2 実装後に次を実行し、成功を確認済み。
 
 ```sh
 bin/ci
@@ -100,18 +110,17 @@ bin/ci
 - RuboCop: no offenses。
 - bundler-audit: no vulnerabilities。
 - Brakeman: no warnings。
-- Rails test: 8 tests, 32 assertions, 0 failures, 0 errors。
+- Rails test: 18 tests, 57 assertions, 0 failures, 0 errors。
 
 ## 次の作業
 
-Phase 2 では次を実装する。
+Phase 3 では次を実装する。
 
-- `GET /v1/search` の controller と request validation。
-- query 正規化。
-- cache key canonical payload と digest。
-- Redis result cache。
-- fresh / stale response。
-- SearXNG client。
-- deterministic な result merge。
-- single-flight lock。
-- SearXNG success / failure / stale の integration test。
+- `GET /v1/search_requests/{request_id}`。
+- request status Redis payload。
+- `BrowserSearchJob`。
+- Browser Worker client。
+- 結果不足 + stale なしの `202 Accepted` response。
+- browser fallback の interval / concurrency 制御。
+- CAPTCHA / 429 検出と engine suspension。
+- browser fallback と polling の integration test。
