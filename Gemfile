@@ -4,10 +4,14 @@ source "https://rubygems.org"
 gem "rails", "~> 8.1.3"
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
-# Build JSON APIs with ease [https://github.com/rails/jbuilder]
-# gem "jbuilder"
-# Use Redis adapter to run Action Cable in production
-# gem "redis", ">= 4.0.1"
+
+# Search gateway runtime dependencies
+gem "faraday"
+gem "faraday-retry"
+gem "prometheus-client"
+gem "rack-attack"
+gem "redis"
+gem "sidekiq"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 # gem "bcrypt", "~> 3.1.7"
@@ -39,4 +43,7 @@ group :development, :test do
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
+
+  # Stubs upstream HTTP services in deterministic tests
+  gem "webmock"
 end
