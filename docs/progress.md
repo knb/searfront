@@ -55,6 +55,10 @@ Phase 5: 移行準備を実装済み。
 - クライアント移行手順 `docs/migration.md`。
 - searfront 実環境確認用 smoke script。
 - `bin/dev` で `.env.development` を読み込み、Web / worker / browser worker を同時起動。
+- Browser Search Worker Phase 1 基盤。
+- `browser-search-worker` の Fastify / TypeScript / Vitest / ESLint 設定。
+- Browser Search Worker `/health` endpoint と Bearer token 認証部品。
+- Browserless 接続確認と Docker / Compose 設定。
 
 ## Phase 進捗
 
@@ -65,6 +69,7 @@ Phase 5: 移行準備を実装済み。
 | Phase 3 | Sidekiq fallback、request status、BrowserSearchJob、Browser Worker API、interval / circuit breaker | 実装済み |
 | Phase 4 | metrics、engine 管理 API、Rack::Attack、alert、障害試験 | 実装済み |
 | Phase 5 | 既存 Rails / AI Agent の検索先を searfront へ移行 | 準備済み |
+| Browser Worker Phase 1 | Worker基盤、health、認証、Browserless接続確認、Docker | 実装済み |
 
 ## Phase 1 実装メモ
 
@@ -132,6 +137,7 @@ bin/ci
 - bundler-audit: no vulnerabilities。
 - Brakeman: no warnings。
 - Rails test: 32 tests, 104 assertions, 0 failures, 0 errors。
+- Browser Search Worker: 5 tests, 0 failures。
 
 ## 次の作業
 

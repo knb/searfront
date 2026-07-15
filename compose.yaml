@@ -1,0 +1,37 @@
+services:
+  browserless:
+    image: ghcr.io/browserless/chromium
+    restart: unless-stopped
+    environment:
+      TOKEN: ${BROWSERLESS_TOKEN}
+      CONCURRENT: "1"
+      QUEUED: "20"
+      TIMEOUT: "60000"
+    shm_size: "1gb"
+    expose:
+      - "3000"
+
+  browser-search-worker:
+    build:
+      context: ./browser-search-worker
+    restart: unless-stopped
+    depends_on:
+      - browserless
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      BROWSER_WORKER_TOKEN: ${BROWSER_WORKER_TOKEN}
+      BROWSERLESS_WS_ENDPOINT: ws://browserless:3000
+      BROWSERLESS_TOKEN: ${BROWSERLESS_TOKEN}
+      GOOGLE_MIN_INTERVAL_MS: "15000"
+      GOOGLE_INTERVAL_JITTER_MS: "5000"
+      GOOGLE_NAVIGATION_TIMEOUT_MS: "30000"
+      DEBUG_ARTIFACTS_ENABLED: "false"
+      DEBUG_ARTIFACTS_DIR: /app/debug
+    expose:
+      - "3000"
+    volumes:
+      - browser_search_debug:/app/debug
+
+volumes:
+  browser_search_debug:
