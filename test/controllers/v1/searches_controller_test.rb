@@ -69,6 +69,23 @@ module V1
       end
     end
 
+    test "accepts one result when the requested limit is one" do
+      with_search_env({ "EXA_API_KEY" => "exa-key" }) do
+        stub_searxng(results: [ searxng_result(1) ])
+
+        assert_no_enqueued_jobs only: BrowserSearchJob do
+          get "/v1/search", params: { q: "one result", limit: 1 }, headers: auth_headers
+        end
+
+        assert_response :success
+        body = response.parsed_body
+        assert_equal "completed", body["status"]
+        assert_equal 1, body["results"].length
+        assert_equal [ "searxng" ], body["sources"]
+        assert_not_requested :post, "https://api.exa.ai/search"
+      end
+    end
+
     test "returns fresh cache without calling SearXNG" do
       with_search_env do |redis|
         request = Searfront::SearchParams.build(ActionController::Parameters.new(q: "cache hit"))
@@ -146,6 +163,34 @@ module V1
 
         assert_response :accepted
         assert_not_requested :post, "https://api.exa.ai/search"
+      end
+    end
+
+    test "logs an Exa upstream failure before using browser fallback" do
+      with_search_env({ "EXA_API_KEY" => "exa-key" }) do
+        stub_searxng(results: [ searxng_result(1) ])
+        stub_request(:post, "https://api.exa.ai/search").to_return(status: 503)
+        output = StringIO.new
+        logger = ActiveSupport::Logger.new(output)
+        Rails.logger.broadcast_to(logger)
+
+        begin
+          assert_enqueued_with(job: BrowserSearchJob, queue: "browser_search") do
+            get "/v1/search", params: { q: "Exa unavailable", limit: 3 }, headers: auth_headers
+          end
+        ensure
+          Rails.logger.stop_broadcasting_to(logger)
+        end
+
+        assert_response :accepted
+        messages = output.string.lines.filter_map do |line|
+          JSON.parse(line.sub(/\A.*?\{/, "{")) if line.include?("exa_search_failed")
+        end
+        event = messages.find { |message| message["event"] == "exa_search_failed" }
+        assert event
+        assert_equal "Searfront::UpstreamError", event["error_class"]
+        assert_equal "Exa returned 503", event["error"]
+        assert event["request_id"].present?
       end
     end
 

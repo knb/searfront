@@ -148,7 +148,7 @@ module Searfront
     end
 
     def minimum_results
-      ENV.fetch("MINIMUM_RESULTS", MINIMUM_RESULTS).to_i
+      [ ENV.fetch("MINIMUM_RESULTS", MINIMUM_RESULTS).to_i, request.limit ].min
     end
 
     def browser_engine_suspended?
@@ -168,7 +168,15 @@ module Searfront
       return [] unless ExaQuota.new.consume
 
       Clients::ExaClient.new.search(request)
-    rescue KeyError, UpstreamError
+    rescue KeyError, UpstreamError => error
+      Rails.logger.warn(
+        {
+          event: "exa_search_failed",
+          request_id: request_id,
+          error_class: error.class.name,
+          error: error.message.to_s.slice(0, 200)
+        }.to_json
+      )
       []
     end
 
