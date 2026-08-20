@@ -161,6 +161,21 @@ bin/ci
 - Rails test: 43 tests, 145 assertions, 0 failures, 0 errors。
 - Browser Search Worker: 20 tests, 0 failures。
 
+## CI security dependency maintenance
+
+2026-08-21にGitHub Actionsの`scan_ruby`失敗を修正した。`bin/brakeman`の
+`--ensure-latest`がBrakeman 8.0.5を拒否し、その次の`bundler-audit`でもRails、
+JSON、Loofah、rails-html-sanitizerに既知脆弱性が検出される状態だった。次の修正版へ更新した。
+
+- Rails 8.1.3.1
+- Brakeman 8.0.6
+- JSON 2.21.2
+- Loofah 2.25.2
+- rails-html-sanitizer 1.7.1
+
+更新後はBrakeman警告0、bundler-audit脆弱性0、Rails test 45件・159 assertions、RuboCop 75 filesで
+すべて成功した。
+
 ## 次の作業
 
 残作業は実環境での移行作業。
