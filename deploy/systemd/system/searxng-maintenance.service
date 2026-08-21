@@ -1,0 +1,14 @@
+[Unit]
+Description=Update SearXNG, rotate engines, and verify search
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/srv/searfront
+Environment=SEARFRONT_APP_DIR=/srv/searfront/source
+Environment=SEARXNG_MAINTENANCE_ENV_FILE=/srv/searfront/.env.searxng-maintenance
+ExecStart=/srv/searfront/source/script/searxng-maintenance
+SyslogIdentifier=searxng-maintenance
+TimeoutStartSec=10min

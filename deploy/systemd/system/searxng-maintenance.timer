@@ -1,0 +1,11 @@
+[Unit]
+Description=Run daily SearXNG maintenance
+
+[Timer]
+OnCalendar=*-*-* 04:20:00
+RandomizedDelaySec=30min
+Persistent=true
+Unit=searxng-maintenance.service
+
+[Install]
+WantedBy=timers.target

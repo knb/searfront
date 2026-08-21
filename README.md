@@ -282,6 +282,11 @@ bin/ci
 このアプリケーションは Rails API-only かつ Active Record なしで生成しているため、
 初期構成では database setup は不要です。
 
+### SearXNG 日次保守
+
+SearXNG の日次 image 更新、engine rotation、smoke test、失敗時 rollback は
+[SearXNG 日次保守](docs/searxng_maintenance.md)を参照してください。
+
 ## 実装フェーズ
 
 1. 基盤: 認証、healthz、readyz、Redis 接続、構造化ログ。

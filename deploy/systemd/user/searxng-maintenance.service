@@ -1,0 +1,11 @@
+[Unit]
+Description=Update SearXNG, rotate engines, and verify search
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/kensei/sites/searfront
+ExecStart=/home/kensei/sites/searfront/script/searxng-maintenance
+SyslogIdentifier=searxng-maintenance
+TimeoutStartSec=10min

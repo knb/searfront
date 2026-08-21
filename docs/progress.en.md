@@ -162,6 +162,36 @@ Verified:
 - Rails test: 43 tests, 145 assertions, 0 failures, 0 errors.
 - Browser Search Worker: 20 tests, 0 failures.
 
+## Interim CAPTCHA Operations and Future Consideration
+
+Because CAPTCHA responses occur frequently through SearXNG, observe production behavior with the following
+interim policy:
+
+- Update SearXNG daily to track the latest release. Check readiness and a smoke search after each update, and
+  retain a rollback path to the previous version.
+- Rotate the search engines enabled in SearXNG to avoid concentrating requests on one search site.
+- Record CAPTCHA, 429, insufficient-result, and latency metrics by engine, then use them to tune suspension and
+  rotation intervals.
+- Continue using searfront caching, single-flight, Exa fallback, and engine suspension.
+
+The initial daily-maintenance implementation was added on 2026-08-21. It preserves the current Compose image,
+rotates engine groups, performs HTTP/JSON smoke tests, rolls settings and the image back on failure, and provides
+a systemd user timer. Configure the production Compose path and exact engine names, then test every group manually
+before enabling the timer. `docs/searxng_maintenance.en.md` is the canonical deployment procedure.
+
+On the same day, the production system timer and maintenance configuration were deployed to
+`bowmore:/srv/searfront`. The digest-pinned SearXNG image was changed to a maintenance-controlled image variable.
+A manual update to `latest`, rotation to Google + DuckDuckGo, container health, a 10-result JSON smoke search, and
+the searfront `/healthz` endpoint all passed. The daily timer is enabled for 04:20 with up to 30 minutes of random
+delay. Bing + Brave is the next rotation group.
+
+Keep user-browser-assisted search as a future consideration for the pages used by 徒然 and 如意. A browser
+extension or an attachment to an existing Chrome session could search in a dedicated tab and return only the
+extracted `title`, `url`, and `snippet` fields to searfront. If adopted, it must use a dedicated browser profile,
+low-frequency serialized execution, and immediate suspension when a CAPTCHA is detected. It must not implement
+CAPTCHA solving, fingerprint spoofing, or bot-evasion behavior. Treat it only as an optional path available while
+the user's browser is online, not as a replacement for normal server-side search.
+
 ## Next Work
 
 Remaining work is real-environment migration.
@@ -169,5 +199,6 @@ Remaining work is real-environment migration.
 - Point existing Rails apps and local AI agents to searfront.
 - Stop direct SearXNG calls.
 - Measure cache hit rate, Exa fallback count, CAPTCHA / 429 count, and browser fallback count.
+- Continue monitoring the SearXNG maintenance journal and per-engine failure rates.
 - Configure production Redis / SearXNG / Exa API key / Browser Search Worker / Browserless URLs and tokens.
 - Verify that internal services are not exposed through Kamal / Docker networking.

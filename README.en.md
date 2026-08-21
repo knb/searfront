@@ -293,6 +293,11 @@ See `docs/migration.en.md` for migration and operational checks.
 This Rails app is API-only and has no Active Record database in the initial
 configuration, so database setup is not required.
 
+### Daily SearXNG maintenance
+
+See [Daily SearXNG Maintenance](docs/searxng_maintenance.en.md) for daily image updates, engine rotation, smoke
+checks, and automatic rollback.
+
 ## Implementation Phases
 
 1. Foundation: authentication, healthz, readyz, Redis connection, structured logging.

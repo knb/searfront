@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_DIR="${SEARFRONT_APP_DIR:-/home/kensei/sites/searfront}"
+ENV_FILE="${SEARXNG_MAINTENANCE_ENV_FILE:-$APP_DIR/.env.searxng-maintenance}"
+
+if [[ -f "$ENV_FILE" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+  set +a
+fi
+
+COMPOSE_FILE="${SEARXNG_COMPOSE_FILE:-/home/kensei/sites/searxng/compose.yaml}"
+SETTINGS_PATH="${SEARXNG_SETTINGS_PATH:-/home/kensei/sites/searxng/core-config/settings.yml}"
+STATE_DIR="${SEARXNG_MAINTENANCE_STATE_DIR:-$APP_DIR/tmp/searxng-maintenance}"
+SERVICE="${SEARXNG_COMPOSE_SERVICE:-core}"
+IMAGE_REPOSITORY="${SEARXNG_IMAGE_REPOSITORY:-docker.io/searxng/searxng}"
+ROLLBACK_TAG="${SEARXNG_ROLLBACK_TAG:-searfront-rollback}"
+IMAGE_VARIABLE="${SEARXNG_COMPOSE_IMAGE_VARIABLE:-SEARXNG_IMAGE}"
+LATEST_IMAGE_VALUE="${SEARXNG_COMPOSE_LATEST_VALUE:-$IMAGE_REPOSITORY:latest}"
+ROLLBACK_IMAGE_VALUE="${SEARXNG_COMPOSE_ROLLBACK_VALUE:-$IMAGE_REPOSITORY:$ROLLBACK_TAG}"
+HEALTH_URL="${SEARXNG_BASE_URL:-http://127.0.0.1:8080/}"
+HEALTH_MODE="${SEARXNG_HEALTH_MODE:-http}"
+INTERNAL_BASE_URL="${SEARXNG_INTERNAL_BASE_URL:-http://127.0.0.1:8080/}"
+HEALTH_ATTEMPTS="${SEARXNG_HEALTH_ATTEMPTS:-12}"
+HEALTH_INTERVAL_SECONDS="${SEARXNG_HEALTH_INTERVAL_SECONDS:-5}"
+
+mkdir -p "$STATE_DIR"
+exec 9>"$STATE_DIR/maintenance.lock"
+if ! flock -n 9; then
+  echo "SearXNG maintenance is already running" >&2
+  exit 75
+fi
+
+if [[ ! -f "$COMPOSE_FILE" ]]; then
+  echo "Missing SearXNG Compose file: $COMPOSE_FILE" >&2
+  exit 66
+fi
+if [[ ! -f "$SETTINGS_PATH" ]]; then
+  echo "Missing SearXNG settings file: $SETTINGS_PATH" >&2
+  exit 66
+fi
+
+compose=(docker compose --file "$COMPOSE_FILE")
+settings_backup="$STATE_DIR/settings.yml.before-update"
+state_path="$STATE_DIR/rotation.json"
+state_backup="$STATE_DIR/rotation.json.before-update"
+cp -p "$SETTINGS_PATH" "$settings_backup"
+state_existed=false
+if [[ -f "$state_path" ]]; then
+  cp -p "$state_path" "$state_backup"
+  state_existed=true
+fi
+
+previous_image="$("${compose[@]}" images -q "$SERVICE" | head -n 1)"
+if [[ -z "$previous_image" ]]; then
+  echo "Could not resolve the current SearXNG image" >&2
+  exit 69
+fi
+docker image tag "$previous_image" "$IMAGE_REPOSITORY:$ROLLBACK_TAG"
+
+rollback() {
+  local exit_code=$?
+  trap - ERR
+  echo "SearXNG maintenance failed; rolling back settings and image" >&2
+  cp -p "$settings_backup" "$SETTINGS_PATH"
+  if [[ "$state_existed" == true ]]; then
+    cp -p "$state_backup" "$state_path"
+  else
+    rm -f "$state_path"
+  fi
+  env "$IMAGE_VARIABLE=$ROLLBACK_IMAGE_VALUE" "${compose[@]}" up -d --no-deps "$SERVICE" || true
+  exit "$exit_code"
+}
+trap rollback ERR
+
+ruby "$APP_DIR/script/rotate_searxng_engines.rb" \
+  --settings "$SETTINGS_PATH" \
+  --state "$state_path" \
+  --rotations "${SEARXNG_ENGINE_ROTATIONS:-google,duckduckgo;bing,brave;qwant,mojeek}"
+
+env "$IMAGE_VARIABLE=$LATEST_IMAGE_VALUE" "${compose[@]}" pull "$SERVICE"
+env "$IMAGE_VARIABLE=$LATEST_IMAGE_VALUE" "${compose[@]}" up -d --no-deps "$SERVICE"
+
+healthy=false
+for ((attempt = 1; attempt <= HEALTH_ATTEMPTS; attempt++)); do
+  if [[ "$HEALTH_MODE" == compose ]] && \
+    "${compose[@]}" exec -T "$SERVICE" wget -q -O /dev/null "${INTERNAL_BASE_URL%/}/healthz"; then
+    healthy=true
+    break
+  elif [[ "$HEALTH_MODE" == http ]] && \
+    curl --fail --silent --show-error --max-time 5 "$HEALTH_URL" >/dev/null; then
+    healthy=true
+    break
+  fi
+  sleep "$HEALTH_INTERVAL_SECONDS"
+done
+if [[ "$healthy" != true ]]; then
+  echo "SearXNG did not become healthy after update" >&2
+  false
+fi
+
+if [[ "$HEALTH_MODE" == compose ]]; then
+  encoded_query="$(ruby -ruri -e 'puts URI.encode_www_form_component(ARGV.fetch(0))' "${SEARXNG_SMOKE_QUERY:-SearXNG}")"
+  "${compose[@]}" exec -T "$SERVICE" \
+    wget -q -O - "${INTERNAL_BASE_URL%/}/search?q=$encoded_query&format=json&categories=general" | \
+    SEARXNG_SMOKE_STDIN=true \
+    SEARXNG_SMOKE_MIN_RESULTS="${SEARXNG_SMOKE_MIN_RESULTS:-1}" \
+    ruby "$APP_DIR/script/searxng-smoke.rb"
+else
+  SEARXNG_BASE_URL="$HEALTH_URL" ruby "$APP_DIR/script/searxng-smoke.rb"
+fi
+
+if [[ -n "${SEARFRONT_BASE_URL:-}" && -n "${SEARFRONT_TOKEN:-}" ]]; then
+  SEARFRONT_BASE_URL="$SEARFRONT_BASE_URL" \
+    SEARFRONT_TOKEN="$SEARFRONT_TOKEN" \
+    ruby "$APP_DIR/script/smoke_search.rb"
+fi
+
+trap - ERR
+rm -f "$settings_backup"
+rm -f "$state_backup"
+echo "SearXNG maintenance completed successfully"

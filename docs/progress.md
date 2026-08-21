@@ -176,6 +176,35 @@ JSON、Loofah、rails-html-sanitizerに既知脆弱性が検出される状態�
 更新後はBrakeman警告0、bundler-audit脆弱性0、Rails test 45件・159 assertions、RuboCop 75 filesで
 すべて成功した。
 
+## CAPTCHA 対策の当面の運用と検討課題
+
+SearXNG 経由の CAPTCHA 頻度が高いため、当面は次の運用で状況を観測する。
+
+- SearXNG を日次で最新リリースへ追従する。更新後は readiness と smoke search を確認し、
+  問題があれば直前バージョンへ戻せる状態を維持する。
+- SearXNG で使用する検索エンジンをローテーションし、同一サイトへのアクセス集中を避ける。
+- エンジン別の CAPTCHA、429、結果不足、応答時間を記録し、停止時間とローテーション間隔の
+  調整材料にする。
+- searfront の cache、single-flight、Exa fallback、engine suspension は継続して利用する。
+
+2026-08-21 に日次保守の初期実装を追加した。Compose image の更新前退避、engine group の
+rotation、HTTP/JSON smoke test、失敗時の設定・image rollback、systemd user timer を含む。
+実環境の SearXNG Compose path と engine 名を設定し、各 group を手動検証してから timer を
+有効化する。導入手順は `docs/searxng_maintenance.md` を正本とする。
+
+同日、`bowmore:/srv/searfront` へ production 用 system timer と保守設定を配置した。SearXNG を
+digest 固定 image から保守用 image 変数へ移行し、`latest` への手動更新、Google + DuckDuckGo
+group への rotation、container health、JSON smoke search 10件、searfront `/healthz` を確認した。
+timer は有効化済みで、毎日 04:20 から最大30分の random delay 後に実行される。次回 group は
+Bing + Brave。
+
+将来の検討課題として、徒然や如意を表示している利用者の実ブラウザへ検索を委譲する方式を残す。
+ブラウザ拡張または既存 Chrome session への接続により、専用タブで検索し、抽出した
+`title`、`url`、`snippet` のみを searfront へ返す構成を想定する。採用する場合も専用 browser
+profile、低頻度・直列実行、CAPTCHA 検出時の即時停止を必須とし、CAPTCHA 自動解決、指紋偽装、
+bot 回避は実装しない。この方式は利用者ブラウザが online の場合だけ使える補助経路とし、
+通常の server-side 検索を置き換えない。
+
 ## 次の作業
 
 残作業は実環境での移行作業。
@@ -183,5 +212,6 @@ JSON、Loofah、rails-html-sanitizerに既知脆弱性が検出される状態�
 - 既存 Rails アプリやローカル AI Agent の検索先を searfront に変更する。
 - 直接 SearXNG 呼び出しを停止する。
 - cache hit 率、Exa fallback 件数、CAPTCHA / 429 回数、browser fallback 件数を計測する。
+- SearXNG 日次保守の journal とエンジン別の失敗率を継続観測する。
 - 実運用環境の Redis / SearXNG / Exa API key / Browser Search Worker / Browserless URL と token を設定する。
 - Kamal / Docker network 上で内部サービスを外部公開しない構成を確認する。
